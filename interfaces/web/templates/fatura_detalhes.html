@@ -138,7 +138,7 @@
 {% block extra_js %}
 <script>
     function imprimirFatura(faturaId) {
-        window.open(`/api/v1/faturamento/faturas/${faturaId}/imprimir`, '_blank');
+        window.open(`/api/v1/faturas/${faturaId}/imprimir`, '_blank');
     }
 
     async function enviarPorEmail(faturaId) {

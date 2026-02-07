@@ -55,21 +55,28 @@ class BoletoService:
         if not cliente.email:
             raise ValidationException("Cliente não possui email cadastrado")
         
-        # Gerar boleto no Gerencianet
-        resultado = self.gerencianet_client.gerar_boleto(
-            cliente_nome=cliente.nome,
-            cliente_cpf=cliente.cpf or "00000000000",
-            cliente_email=cliente.email,
-            valor=fatura.valor_total,
-            data_vencimento=fatura.data_vencimento,
-            numero_referencia=fatura.numero_fatura,
-            descricao=fatura.descricao or f"Fatura {fatura.numero_fatura}",
-            juros_dia=juros_dia,
-            multa_atraso=multa_atraso
-        )
-        
         # Gerar número único para o boleto
         numero_boleto = self._gerar_numero_boleto(fatura.cliente_id)
+        
+        # Gerar boleto - se não estiver conectado ao Gerencianet, gera localmente
+        if self.gerencianet_client.connected:
+            try:
+                resultado = self.gerencianet_client.gerar_boleto(
+                    cliente_nome=cliente.nome,
+                    cliente_cpf=cliente.cpf or "00000000000",
+                    cliente_email=cliente.email,
+                    valor=fatura.valor_total,
+                    data_vencimento=fatura.data_vencimento,
+                    numero_referencia=fatura.numero_fatura,
+                    descricao=fatura.descricao or f"Fatura {fatura.numero_fatura}",
+                    juros_dia=juros_dia,
+                    multa_atraso=multa_atraso
+                )
+            except Exception as e:
+                print(f"Aviso: Erro ao gerar boleto no Gerencianet - {e}")
+                resultado = {}
+        else:
+            resultado = {}
         
         # Criar registro de boleto
         boleto = BoletoModel(
@@ -81,8 +88,8 @@ class BoletoService:
             codigo_barras=resultado.get("codigo_barras"),
             linha_digitavel=resultado.get("linha_digitavel"),
             url_boleto=resultado.get("url_boleto"),
-            gerencianet_charge_id=str(resultado.get("charge_id")),
-            gerencianet_status="aberto",
+            gerencianet_charge_id=str(resultado.get("charge_id")) if resultado.get("charge_id") else None,
+            gerencianet_status="aberto" if resultado else None,
             status="pendente"
         )
         
@@ -133,18 +140,25 @@ class BoletoService:
         # Gerar número único para o boleto
         numero_boleto = self._gerar_numero_boleto(cliente_id)
         
-        # Gerar boleto no Gerencianet
-        resultado = self.gerencianet_client.gerar_boleto(
-            cliente_nome=cliente.nome,
-            cliente_cpf=cliente.cpf or "00000000000",
-            cliente_email=cliente.email,
-            valor=valor,
-            data_vencimento=data_vencimento,
-            numero_referencia=numero_boleto,
-            descricao=descricao or f"Boleto {numero_boleto}",
-            juros_dia=juros_dia,
-            multa_atraso=multa_atraso
-        )
+        # Gerar boleto - se não estiver conectado ao Gerencianet, gera localmente
+        if self.gerencianet_client.connected:
+            try:
+                resultado = self.gerencianet_client.gerar_boleto(
+                    cliente_nome=cliente.nome,
+                    cliente_cpf=cliente.cpf or "00000000000",
+                    cliente_email=cliente.email,
+                    valor=valor,
+                    data_vencimento=data_vencimento,
+                    numero_referencia=numero_boleto,
+                    descricao=descricao or f"Boleto {numero_boleto}",
+                    juros_dia=juros_dia,
+                    multa_atraso=multa_atraso
+                )
+            except Exception as e:
+                print(f"Aviso: Erro ao gerar boleto no Gerencianet - {e}")
+                resultado = {}
+        else:
+            resultado = {}
         
         # Criar registro de boleto
         boleto = BoletoModel(
@@ -155,8 +169,8 @@ class BoletoService:
             codigo_barras=resultado.get("codigo_barras"),
             linha_digitavel=resultado.get("linha_digitavel"),
             url_boleto=resultado.get("url_boleto"),
-            gerencianet_charge_id=str(resultado.get("charge_id")),
-            gerencianet_status="aberto",
+            gerencianet_charge_id=str(resultado.get("charge_id")) if resultado.get("charge_id") else None,
+            gerencianet_status="aberto" if resultado else None,
             status="pendente"
         )
         

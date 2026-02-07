@@ -319,7 +319,7 @@
         }
 
         try {
-            const response = await fetch(`/api/clientes/search?q=${encodeURIComponent(query)}`);
+            const response = await fetch(`/api/v1/clientes/search?q=${encodeURIComponent(query)}`);
             if (!response.ok) {
                 throw new Error('Erro na busca');
             }

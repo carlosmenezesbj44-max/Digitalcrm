@@ -9,6 +9,8 @@
         padding: 0;
         color: var(--text-main);
         font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, var(--card-bg) 0%, #1e293b 100%);
+        min-height: 100vh;
     }
 
     /* Top Bar Layout */
@@ -16,34 +18,46 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 16px;
-        gap: 8px;
+        margin-bottom: 24px;
+        gap: 16px;
         flex-wrap: wrap;
-        padding: 4px 0;
+        padding: 12px 0;
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 16px 24px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     /* Top Bar Search */
     .search-group {
         display: flex;
-        gap: 8px;
+        gap: 12px;
         flex: 1;
+        max-width: 400px;
     }
 
     .search-select {
-        background: var(--card-bg);
+        background: rgba(255, 255, 255, 0.05);
         border: 1px solid var(--border-color);
         color: var(--text-main);
-        border-radius: 8px;
-        padding: 8px 15px;
-        min-width: 110px;
-        height: 42px;
-        transition: all 0.2s ease;
+        border-radius: 12px;
+        padding: 10px 16px;
+        min-width: 140px;
+        height: 48px;
+        transition: all 0.3s ease;
+        font-size: 14px;
     }
 
     .search-select:focus {
         border-color: var(--primary-color);
         outline: none;
         box-shadow: 0 0 0 3px rgba(0, 163, 255, 0.1);
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .search-select option {
+        background: #1c2833;
+        color: var(--text-main);
     }
 
     .search-input-wrapper {
@@ -54,58 +68,77 @@
 
     .search-input {
         width: 100%;
-        background: var(--card-bg);
+        background: rgba(255, 255, 255, 0.05);
         border: 1px solid var(--border-color);
         color: var(--text-main);
-        border-radius: 8px;
-        padding: 8px 15px 8px 40px;
-        height: 42px;
-        transition: all 0.2s ease;
+        border-radius: 12px;
+        padding: 10px 16px 10px 40px;
+        height: 48px;
+        transition: all 0.3s ease;
+        font-size: 14px;
     }
 
     .search-input:focus {
         border-color: var(--primary-color);
         outline: none;
         box-shadow: 0 0 0 3px rgba(0, 163, 255, 0.1);
+        background: rgba(255, 255, 255, 0.08);
     }
 
     .search-icon {
         position: absolute;
-        right: 12px;
+        right: 16px;
         top: 50%;
         transform: translateY(-50%);
         color: var(--text-secondary);
+        font-size: 16px;
     }
 
     .top-actions {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
         flex-wrap: wrap;
     }
 
     .btn-top {
-        background: #1c2833;
-        border: 1px solid var(--border-color);
+        background: linear-gradient(135deg, var(--primary-color) 0%, #007bff 100%);
+        border: none;
         color: white;
-        border-radius: 20px;
-        padding: 8px 20px;
+        border-radius: 24px;
+        padding: 10px 24px;
         display: flex;
         align-items: center;
         gap: 8px;
         font-size: 14px;
         text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 163, 255, 0.3);
+    }
+
+    .btn-top:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 163, 255, 0.4);
     }
 
     .btn-top.active {
         background: white;
-        color: #0b141a;
+        color: var(--primary-color);
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
     }
 
     .icon-btn {
         color: var(--text-main);
         font-size: 20px;
         text-decoration: none;
+        padding: 8px;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+    .icon-btn:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-main);
     }
 
     /* User Widget */
@@ -183,6 +216,7 @@
         border-radius: 12px;
         background: var(--card-bg);
         border: 1px solid var(--border-color);
+        color: #000;
     }
 
     .user-menu .dropdown-item {
@@ -407,13 +441,13 @@
     <!-- Top Bar -->
     <div class="top-bar">
         <form action="/clientes" method="GET" class="search-group" id="dashboardSearchForm">
-            <select name="field" class="search-select" id="searchField">
-                <option value="todos">Todos</option>
-                <option value="endereco">Endereço</option>
-                <option value="email">Email</option>
-                <option value="nome">Nome</option>
-                <option value="cpf/cnpj">CPF/CNPJ</option>
-                <option value="login">Login</option>
+            <select name="field" class="search-select" id="searchField" style="color: var(--text-main);">
+                <option value="todos" style="color: var(--text-main); background: #1c2833;">Todos</option>
+                <option value="endereco" style="color: var(--text-main); background: #1c2833;">Endereço</option>
+                <option value="email" style="color: var(--text-main); background: #1c2833;">Email</option>
+                <option value="nome" style="color: var(--text-main); background: #1c2833;">Nome</option>
+                <option value="cpf/cnpj" style="color: var(--text-main); background: #1c2833;">CPF/CNPJ</option>
+                <option value="login" style="color: var(--text-main); background: #1c2833;">Login</option>
             </select>
             <div class="search-input-wrapper">
                 <input type="text" name="q" class="search-input" placeholder="Buscar clientes..." id="searchInput" onkeypress="if(event.key === 'Enter') { this.form.submit(); return false; }">
@@ -469,9 +503,93 @@
 
     <!-- Dashboard Grid -->
     <div class="dashboard-grid">
+        <!-- My Deals Funnel -->
+        {% if view in ['principal', 'vendas'] %}
+        <div class="col-os">
+            <div class="card-db">
+                <div class="card-title">My Deals Funnel</div>
+                <div class="chart-m">
+                    <canvas id="dealFunnelChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Emails Opened -->
+        {% if view in ['principal', 'vendas'] %}
+        <div class="col-atendimentos">
+            <div class="card-db">
+                <div class="card-title">Emails Opened</div>
+                <div class="chart-m">
+                    <canvas id="emailsOpenedChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- My Deal by Milestone -->
+        {% if view in ['principal', 'vendas'] %}
+        <div class="col-status-contratos">
+            <div class="card-db">
+                <div class="card-title">My Deals by Milestone</div>
+                <div class="chart-m">
+                    <canvas id="dealByMilestoneChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Revenue Graph -->
+        {% if view in ['principal', 'financeiro', 'vendas'] %}
+        <div class="col-contratos-donut">
+            <div class="card-db">
+                <div class="card-title">Revenue Graph</div>
+                <div class="chart-m">
+                    <canvas id="revenueGraphChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Task Report -->
+        {% if view in ['principal', 'suporte', 'vendas'] %}
+        <div class="col-clientes">
+            <div class="card-db">
+                <div class="card-title">Task Report</div>
+                <div class="chart-m">
+                    <canvas id="taskReportChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Activities -->
+        {% if view in ['principal', 'suporte', 'vendas'] %}
+        <div class="col-30-dias">
+            <div class="card-db">
+                <div class="card-title">Activities</div>
+                <div class="chart-m">
+                    <canvas id="activitiesChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tasks -->
+        {% if view in ['principal', 'suporte', 'vendas'] %}
+        <div class="col-backup">
+            <div class="card-db">
+                <div class="card-title">Tasks</div>
+                <div class="chart-m">
+                    <canvas id="tasksChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- OS Pendentes -->
         {% if view in ['principal', 'suporte', 'tecnico'] %}
-        <div class="col-os">
+        <div class="col-financeiro">
             <div class="card-db">
                 <div class="card-title">Ordens de serviços pendentes</div>
                 <div class="os-stats">
@@ -490,7 +608,7 @@
 
         <!-- Atendimentos por status -->
         {% if view in ['principal', 'suporte'] %}
-        <div class="col-atendimentos">
+        <div class="col-prospects">
             <div class="card-db">
                 <div class="card-title">Atendimentos por status (6096)</div>
                 <div class="chart-h">
@@ -502,7 +620,7 @@
 
         <!-- Status dos contratos -->
         {% if view in ['principal', 'financeiro', 'tecnico'] %}
-        <div class="col-status-contratos">
+        <div class="col-evolucao">
             <div class="card-db">
                 <div class="card-title">Status dos contratos (25660)</div>
                 <div class="row align-items-center">
@@ -542,7 +660,7 @@
 
         <!-- Contratos por status Donut -->
         {% if view in ['principal', 'financeiro'] %}
-        <div class="col-contratos-donut">
+        <div class="col-evolucao">
             <div class="card-db">
                 <div class="card-title">Contratos por status (9517)</div>
                 <div class="chart-m position-relative">
@@ -557,7 +675,7 @@
 
         <!-- Clientes Donut -->
         {% if view in ['principal', 'financeiro', 'vendas'] %}
-        <div class="col-clientes">
+        <div class="col-evolucao">
             <div class="card-db">
                 <div class="card-title">Clientes (20266)</div>
                 <div class="chart-m position-relative">
@@ -572,7 +690,7 @@
 
         <!-- Últimos 30 dias -->
         {% if view in ['principal', 'financeiro', 'vendas'] %}
-        <div class="col-30-dias">
+        <div class="col-evolucao">
             <div class="card-db">
                 <div class="card-title">Últimos 30 dias (187)</div>
                 <div class="chart-m">
@@ -590,7 +708,7 @@
 
         <!-- Status Backup -->
         {% if view in ['principal', 'suporte', 'tecnico'] %}
-        <div class="col-backup">
+        <div class="col-evolucao">
             <div class="card-db">
                 <div class="card-title">Status Backup</div>
                 <div class="chart-m">
@@ -602,7 +720,7 @@
 
         <!-- A receber -->
         {% if view in ['principal', 'financeiro'] %}
-        <div class="col-financeiro">
+        <div class="col-evolucao">
             <div class="card-db">
                 <div class="card-title">A receber com vencimento no mês atual</div>
                 <div class="chart-m">
@@ -620,7 +738,7 @@
 
         <!-- Prospects -->
         {% if view in ['principal', 'vendas'] %}
-        <div class="col-prospects">
+        <div class="col-evolucao">
             <div class="card-db">
                 <div class="card-title">Prospects (2117)</div>
                 <div class="chart-m">
@@ -672,18 +790,18 @@
     Chart.defaults.font.family = "'Inter', sans-serif";
 
     function initCharts() {
-        // 1. Atendimentos por status (Barra Horizontal)
-        const atendimentosCtx = document.getElementById('atendimentosChart');
-        if (atendimentosCtx) {
-            new Chart(atendimentosCtx, {
+        // 1. My Deals Funnel (Funnel)
+        const dealFunnelCtx = document.getElementById('dealFunnelChart');
+        if (dealFunnelCtx) {
+            new Chart(dealFunnelCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['Novo', 'Em progresso', 'Pendente'],
+                    labels: ['New', 'Demo Scheduled', 'Demo Completed', 'Interested', 'Demo No-Show'],
                     datasets: [{
-                        data: [3031, 2925, 140],
-                        backgroundColor: ['#2ecc71', '#3498db', '#e74c3c'],
+                        data: [5500, 3000, 2000, 1200, 500],
+                        backgroundColor: ['#3498db', '#2ecc71', '#e67e22', '#f1c40f', '#e74c3c'],
                         borderRadius: 4,
-                        barThickness: 20
+                        barThickness: 25
                     }]
                 },
                 options: {
@@ -699,14 +817,14 @@
             });
         }
 
-        // 2. Contratos Gauge (Mini Donut)
-        const contratosGaugeCtx = document.getElementById('contratosGauge');
-        if (contratosGaugeCtx) {
-            new Chart(contratosGaugeCtx, {
+        // 2. Emails Opened (Gauge)
+        const emailsOpenedCtx = document.getElementById('emailsOpenedChart');
+        if (emailsOpenedCtx) {
+            new Chart(emailsOpenedCtx, {
                 type: 'doughnut',
                 data: {
                     datasets: [{
-                        data: [37, 63],
+                        data: [100, 0],
                         backgroundColor: ['#2ecc71', 'var(--card-bg)'],
                         borderWidth: 0,
                         circumference: 360,
@@ -722,21 +840,20 @@
             });
         }
 
-        // 3. Contratos por status (Donut)
-        const contratosDonutCtx = document.getElementById('contratosDonut');
-        if (contratosDonutCtx) {
-            new Chart(contratosDonutCtx, {
-                type: 'doughnut',
+        // 3. My Deals by Milestone (Pie)
+        const dealByMilestoneCtx = document.getElementById('dealByMilestoneChart');
+        if (dealByMilestoneCtx) {
+            new Chart(dealByMilestoneCtx, {
+                type: 'pie',
                 data: {
-                    labels: ['Ativos', 'Bloqueio manual', 'Bloqueio auto', 'Em atraso', 'Ag. assinatura', 'Desativados'],
+                    labels: ['New', 'Demo Scheduled', 'Demo Completed', 'Interested', 'Demo No-Show', 'Lost'],
                     datasets: [{
-                        data: [7689, 25, 1740, 46, 2, 15],
-                        backgroundColor: ['#2ecc71', '#e74c3c', '#e67e22', '#f1c40f', '#3498db', '#95a5a6'],
+                        data: [14, 9, 27, 34, 9, 7],
+                        backgroundColor: ['#3498db', '#2ecc71', '#e67e22', '#f1c40f', '#e74c3c', '#95a5a6'],
                         borderWidth: 0
                     }]
                 },
                 options: {
-                    cutout: '75%',
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
@@ -755,72 +872,54 @@
             });
         }
 
-        // 4. Clientes (Donut com % no centro)
-        const clientesDonutCtx = document.getElementById('clientesDonut');
-        if (clientesDonutCtx) {
-            new Chart(clientesDonutCtx, {
-                type: 'doughnut',
+        // 4. Revenue Graph (Area)
+        const revenueGraphCtx = document.getElementById('revenueGraphChart');
+        if (revenueGraphCtx) {
+            new Chart(revenueGraphCtx, {
+                type: 'line',
                 data: {
-                    labels: ['Ativos', 'Inativos'],
-                    datasets: [{
-                        data: [11263, 9003],
-                        backgroundColor: ['#2ecc71', '#1c2833'],
-                        borderWidth: 0
-                    }]
+                    labels: ['Jan', 'Fev', 'Mar'],
+                    datasets: [
+                        {
+                            label: 'Revenue',
+                            data: [120000, 180000, 150000],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Cost',
+                            data: [80000, 120000, 90000],
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
                 },
                 options: {
-                    cutout: '75%',
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { 
-                            position: 'right', 
-                            labels: { 
-                                boxWidth: 8, 
-                                font: { size: 9 },
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            } 
-                        }
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' } }
                     }
                 }
             });
         }
 
-        // 5. Últimos 30 dias (Semi-circle)
-        const trintaDiasGaugeCtx = document.getElementById('trintaDiasGauge');
-        if (trintaDiasGaugeCtx) {
-            new Chart(trintaDiasGaugeCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Ativados', 'Restante'],
-                    datasets: [{
-                        data: [187, 87],
-                        backgroundColor: ['#2ecc71', '#1c2833'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    circumference: 180,
-                    rotation: -90,
-                    cutout: '80%',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-
-        // 6. Backup (Barras)
-        const backupCtx = document.getElementById('backupChart');
-        if (backupCtx) {
-            new Chart(backupCtx, {
+        // 5. Task Report (Bar)
+        const taskReportCtx = document.getElementById('taskReportChart');
+        if (taskReportCtx) {
+            new Chart(taskReportCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['29/01', '30/01', '31/01'],
+                    labels: ['Dion', 'Francelis', 'Francois'],
                     datasets: [
-                        { label: 'Sucesso', data: [1, 1, 1], backgroundColor: '#2ecc71' },
-                        { label: 'Falha', data: [0, 0, 0.2], backgroundColor: '#e74c3c' }
+                        { label: 'Completed', data: [3, 2, 4], backgroundColor: '#2ecc71' },
+                        { label: 'In Progress', data: [2, 3, 1], backgroundColor: '#f1c40f' }
                     ]
                 },
                 options: {
@@ -835,96 +934,48 @@
             });
         }
 
-        // 7. Financeiro - A receber (Semi-circle)
-        const receberGaugeCtx = document.getElementById('receberGauge');
-        if (receberGaugeCtx) {
-            new Chart(receberGaugeCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Abertos', 'Cancelados', 'Baixados', 'Renegociados'],
-                    datasets: [{
-                        data: [539, 194, 46, 12],
-                        backgroundColor: ['#00a3ff', '#1c2833', '#2ecc71', '#f1c40f'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    circumference: 180,
-                    rotation: -90,
-                    cutout: '80%',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { 
-                            position: 'bottom', 
-                            labels: { 
-                                boxWidth: 8, 
-                                font: { size: 9 },
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            } 
-                        } 
-                    }
-                }
-            });
-        }
-
-        // 8. Prospects (Funnel - usando bar chart customizado)
-        const prospectsCtx = document.getElementById('prospectsChart');
-        if (prospectsCtx) {
-            new Chart(prospectsCtx, {
+        // 6. Activities (List)
+        const activitiesCtx = document.getElementById('activitiesChart');
+        if (activitiesCtx) {
+            new Chart(activitiesCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['Novos', 'Sondagem', 'Apresentação', 'Negociando'],
+                    labels: ['Email', 'Meeting', 'Call'],
                     datasets: [{
-                        data: [2020, 1500, 800, 400],
-                        backgroundColor: ['#3498db', '#9b59b6', '#f1c40f', '#e67e22'],
-                        borderRadius: 5
+                        data: [12, 8, 5],
+                        backgroundColor: ['#3498db', '#2ecc71', '#e67e22'],
+                        borderRadius: 4
                     }]
                 },
                 options: {
-                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { display: false },
-                        y: { grid: { display: false } }
+                        x: { grid: { display: false } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' } }
                     }
                 }
             });
         }
 
-        // 9. Evolução Mensal (Line chart complexo)
-        const evolucaoCtx = document.getElementById('evolucaoChart');
-        if (evolucaoCtx) {
-            new Chart(evolucaoCtx, {
-                type: 'line',
+        // 7. Tasks (List)
+        const tasksCtx = document.getElementById('tasksChart');
+        if (tasksCtx) {
+            new Chart(tasksCtx, {
+                type: 'bar',
                 data: {
-                    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
-                    datasets: [
-                        {
-                            label: 'Ativados',
-                            data: [287, 391, 457, 448, 204, 275, 301, 250, 234],
-                            borderColor: '#2ecc71',
-                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Churn',
-                            data: [-185, -93, -77, -121, -119, -148, -11, -33],
-                            borderColor: '#e74c3c',
-                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        }
-                    ]
+                    labels: ['Call for Demo', 'Follow Up', 'Send Proposal'],
+                    datasets: [{
+                        data: [3, 2, 1],
+                        backgroundColor: ['#f1c40f', '#3498db', '#2ecc71'],
+                        borderRadius: 4
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
+                    plugins: { legend: { display: false } },
                     scales: {
                         x: { grid: { display: false } },
                         y: { grid: { color: 'rgba(255,255,255,0.05)' } }

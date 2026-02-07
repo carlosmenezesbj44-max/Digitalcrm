@@ -36,21 +36,26 @@ class GerencianetClient:
         self.client_secret = client_secret or os.getenv("GERENCIANET_CLIENT_SECRET")
         self.sandbox = sandbox
         
-        if not self.client_id or not self.client_secret:
-            raise ValidationException(
-                "GERENCIANET_CLIENT_ID e GERENCIANET_CLIENT_SECRET são obrigatórios"
+        # Se não houver credenciais, o cliente não se autentica
+        self.connected = False
+        if self.client_id and self.client_secret and self.client_id != "seu_client_id_aqui" and self.client_secret != "seu_client_secret_aqui":
+            self.base_url = (
+                "https://sandbox.gerencianet.com.br" if sandbox
+                else "https://api.gerencianet.com.br"
             )
-        
-        self.base_url = (
-            "https://sandbox.gerencianet.com.br" if sandbox
-            else "https://api.gerencianet.com.br"
-        )
-        self.oauth_url = (
-            "https://sandbox.gerencianet.com.br/oauth/authorize" if sandbox
-            else "https://api.gerencianet.com.br/oauth/authorize"
-        )
-        self.token = None
-        self._authenticate()
+            self.oauth_url = (
+                "https://sandbox.gerencianet.com.br/oauth/authorize" if sandbox
+                else "https://api.gerencianet.com.br/oauth/authorize"
+            )
+            self.token = None
+            self.connected = True
+            try:
+                self._authenticate()
+            except Exception as e:
+                print(f"Aviso: Falha na autenticação com Gerencianet - {str(e)}")
+                self.connected = False
+        else:
+            print("Aviso: Credenciais Gerencianet não configuradas")
     
     def _authenticate(self) -> str:
         """Autentica com Gerencianet e obtém token de acesso"""

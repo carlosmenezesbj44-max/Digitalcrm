@@ -5,6 +5,9 @@ from crm_core.db.base import get_db
 from sqlalchemy.orm import Session
 from typing import List
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 router = APIRouter()
 

@@ -61,6 +61,7 @@ class BoletoCreate(BaseModel):
     parcela_id: Optional[int] = None
     valor: float
     data_vencimento: date
+    descricao: Optional[str] = None
 
 
 class BoletoResponse(BaseModel):

@@ -15,6 +15,10 @@ app.include_router(usuarios_router)
 from crm_modules.servidores.api import router as servidores_router
 app.include_router(servidores_router, prefix="/api/v1/servidores")
 
+# Include clientes API routes
+from crm_modules.clientes.api import router as clientes_router
+app.include_router(clientes_router)
+
 # Include planos API routes
 from crm_modules.planos.api import router as planos_router
 app.include_router(planos_router, prefix="/api/v1/planos")
@@ -23,6 +27,13 @@ app.include_router(planos_router, prefix="/api/v1/planos")
 from crm_modules.mikrotik.api import router as mikrotik_router
 # Remove prefix duplicate since router already has /mikrotik prefix
 app.include_router(mikrotik_router, prefix="/api/v1")
+
+# Include Faturamento API routes
+from crm_modules.faturamento.carne_api import router as faturamento_router
+app.include_router(faturamento_router, prefix="/api/v1")
+
+from crm_modules.faturamento.api import router as faturamento_main_router
+app.include_router(faturamento_main_router, prefix="/api/v1")
 
 app.mount("/static", StaticFiles(directory="interfaces/web/static"), name="static")
 templates = Jinja2Templates(directory="interfaces/web/templates")
@@ -273,6 +284,15 @@ def mikrotik_logs(request: Request):
 def mikrotik_sessions(request: Request):
     """Exibe página de sessões do MikroTik"""
     return templates.TemplateResponse("mikrotik_sessions.html", {"request": request})
+
+
+@app.get("/api/clientes/search")
+async def buscar_clientes_api(q: str, db: Session = Depends(get_db)):
+    """Busca clientes por nome, email ou telefone (API para autocomplete)"""
+    from crm_modules.clientes.service import ClienteService
+    service = ClienteService(repository_session=db)
+    clientes = service.buscar_clientes(q)
+    return [{"id": cliente.id, "nome": cliente.nome, "email": cliente.email} for cliente in clientes]
 
 
 @app.post("/clientes/novo")
@@ -634,9 +654,9 @@ def listar_carnes(request: Request, db: Session = Depends(get_db)):
         from crm_modules.faturamento.carne_service import CarneService
         service = CarneService(db)
         carnes = service.listar_carnes()
-        return templates.TemplateResponse("carnes_boletos.html", {"request": request, "carnes": carnes})
+        return templates.TemplateResponse("carnes.html", {"request": request, "carnes": carnes})
     except Exception as e:
-        return templates.TemplateResponse("carnes_boletos.html", {"request": request, "carnes": [], "error": str(e)})
+        return templates.TemplateResponse("carnes.html", {"request": request, "carnes": [], "error": str(e)})
 
 
 @app.get("/carnes/{carne_id}/imprimir", response_class=HTMLResponse)
@@ -646,6 +666,7 @@ def imprimir_carne(carne_id: int, request: Request, db: Session = Depends(get_db
         from crm_modules.faturamento.carne_models import CarneModel
         from sqlalchemy.orm import joinedload
         from datetime import datetime
+        from crm_core.config.settings import settings
 
         # Busca o modelo diretamente para ter acesso aos relacionamentos no template
         carne = db.query(CarneModel).options(
@@ -656,13 +677,72 @@ def imprimir_carne(carne_id: int, request: Request, db: Session = Depends(get_db
         if not carne:
             return HTMLResponse(content=f"Carnê não encontrado: ID {carne_id}", status_code=404)
 
+        # Configuração para o template
+        config = {
+            "PIX_CHAVE": settings.pix_chave or "",
+            "PIX_TIPO_CHAVE": settings.pix_tipo_chave or "cpf",
+            "PIX_BENEFICIARIO": settings.pix_beneficiario or "CRM Provedor",
+            "PIX_CIDADE": settings.pix_cidade or "São Paulo"
+        }
+
         return templates.TemplateResponse("carne_impressao.html", {
             "request": request,
             "carne": carne,
-            "now": datetime.now()
+            "now": datetime.now(),
+            "config": config
         })
     except Exception as e:
         return HTMLResponse(content=f"Erro ao gerar impressão: {str(e)}", status_code=400)
+
+
+@app.get("/faturas", response_class=HTMLResponse)
+def listar_faturas(request: Request, db: Session = Depends(get_db)):
+    """Lista todas as faturas"""
+    try:
+        from crm_modules.faturamento.service import FaturamentoService
+        service = FaturamentoService(repository_session=db)
+        faturas = service.listar_todas_faturas()
+        return templates.TemplateResponse("faturas.html", {"request": request, "faturas": faturas})
+    except Exception as e:
+        return templates.TemplateResponse("faturas.html", {"request": request, "faturas": [], "error": str(e)})
+
+
+@app.get("/faturas/{fatura_id}", response_class=HTMLResponse)
+def detalhes_fatura(fatura_id: int, request: Request, db: Session = Depends(get_db)):
+    """Exibe detalhes de uma fatura"""
+    try:
+        from crm_modules.faturamento.service import FaturamentoService
+        service = FaturamentoService(repository_session=db)
+        fatura = service.obter_fatura_detalhada(fatura_id)
+        if not fatura:
+            return templates.TemplateResponse("faturas.html", {"request": request, "error": "Fatura não encontrada"})
+        return templates.TemplateResponse("fatura_detalhes.html", {"request": request, "fatura": fatura})
+    except Exception as e:
+        return templates.TemplateResponse("faturas.html", {"request": request, "error": str(e)})
+
+
+@app.get("/boletos", response_class=HTMLResponse)
+def listar_boletos(request: Request, db: Session = Depends(get_db)):
+    """Lista todos os boletos"""
+    try:
+        from crm_modules.faturamento.boleto_service import BoletoService
+        service = BoletoService(db)
+        boletos = service.listar_todos_boletos()
+        return templates.TemplateResponse("boletos.html", {"request": request, "boletos": boletos})
+    except Exception as e:
+        return templates.TemplateResponse("boletos.html", {"request": request, "boletos": [], "error": str(e)})
+
+
+@app.get("/pagamentos", response_class=HTMLResponse)
+def listar_pagamentos(request: Request, db: Session = Depends(get_db)):
+    """Lista todos os pagamentos"""
+    try:
+        from crm_modules.faturamento.service import FaturamentoService
+        service = FaturamentoService(repository_session=db)
+        pagamentos = service.listar_todos_pagamentos()
+        return templates.TemplateResponse("pagamentos.html", {"request": request, "pagamentos": pagamentos})
+    except Exception as e:
+        return templates.TemplateResponse("pagamentos.html", {"request": request, "pagamentos": [], "error": str(e)})
 
 
 # ============================================
@@ -670,48 +750,61 @@ def imprimir_carne(carne_id: int, request: Request, db: Session = Depends(get_db
 # ============================================
 
 @app.get("/contratos", response_class=HTMLResponse)
-def listar_contratos(request: Request):
+def listar_contratos(request: Request, db: Session = Depends(get_db)):
     """Lista todos os contratos (simplificado)"""
     from crm_modules.contratos.service import ContratoService
-    from crm_core.db.session import SessionLocal
-    db = SessionLocal()
     try:
-        service = ContratoService(db)
-        contratos = service.listar_contratos()
-        return templates.TemplateResponse("contratos.html", {"request": request, "contratos": contratos})
+        service = ContratoService(repository_session=db)
+        contratos = service.listar_todos_contratos()
+        stats = service.obter_estatisticas_contratos()
+        return templates.TemplateResponse("contratos.html", {"request": request, "contratos": contratos, "stats": stats})
     except Exception as e:
-        return templates.TemplateResponse("contratos.html", {"request": request, "contratos": [], "error": str(e)})
-    finally:
-        db.close()
+        return templates.TemplateResponse("contratos.html", {"request": request, "contratos": [], "error": str(e), "stats": {"total": 0, "aguardando": 0, "assinado": 0, "liberado": 0, "vencendo_30_dias": 0, "vencidos": 0}})
 
 
-@app.get("/contratos/{contrato_id}", response_class=HTMLResponse)
-def detalhes_contrato(contrato_id: int, request: Request):
-    """Exibe detalhes de um contrato"""
+@app.get("/contratos/novo", response_class=HTMLResponse)
+def novo_contrato_form(request: Request, db: Session = Depends(get_db)):
+    """Exibe formulário para criar novo contrato"""
+    from crm_modules.clientes.service import ClienteService
+    cliente_service = ClienteService(repository_session=db)
+    clientes = cliente_service.listar_clientes_ativos()
+    return templates.TemplateResponse("novo_contrato.html", {"request": request, "clientes": clientes})
+
+
+@app.post("/contratos/novo")
+async def criar_contrato(request: Request, db: Session = Depends(get_db)):
+    """Cria um novo contrato"""
     from crm_modules.contratos.service import ContratoService
-    from crm_core.db.session import SessionLocal
-    db = SessionLocal()
+    from crm_modules.contratos.schemas import ContratoCreate
     try:
-        service = ContratoService(db)
-        contrato = service.obter_contrato(contrato_id)
-        if not contrato:
-            return templates.TemplateResponse("contratos.html", {"request": request, "error": "Contrato não encontrado"})
-        return templates.TemplateResponse("contrato_detalhes.html", {"request": request, "contrato": contrato})
+        form_data = await request.form()
+        contrato_data = ContratoCreate(
+            titulo=form_data.get("titulo"),
+            descricao=form_data.get("descricao"),
+            cliente_id=int(form_data.get("cliente_id")),
+            tipo_contrato=form_data.get("tipo_contrato"),
+            data_vigencia_inicio=form_data.get("data_vigencia_inicio"),
+            data_vigencia_fim=form_data.get("data_vigencia_fim"),
+            valor_contrato=float(form_data.get("valor_contrato")) if form_data.get("valor_contrato") else None,
+            moeda=form_data.get("moeda"),
+            observacoes=form_data.get("observacoes"),
+            incluir_pdf=form_data.get("incluir_pdf") == "true"
+        )
+        service = ContratoService(repository_session=db)
+        service.criar_contrato(contrato_data)
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/contratos", status_code=303)
     except Exception as e:
-        return templates.TemplateResponse("contratos.html", {"request": request, "error": str(e)})
-    finally:
-        db.close()
+        return templates.TemplateResponse("novo_contrato.html", {"request": request, "error": str(e)})
 
 
 @app.get("/contratos/{contrato_id}/imprimir", response_class=HTMLResponse)
-def imprimir_contrato(contrato_id: int, request: Request):
+def imprimir_contrato(contrato_id: int, request: Request, db: Session = Depends(get_db)):
     """Imprime um contrato"""
     from crm_modules.contratos.service import ContratoService
-    from crm_core.db.session import SessionLocal
     from datetime import datetime
-    db = SessionLocal()
     try:
-        service = ContratoService(db)
+        service = ContratoService(repository_session=db)
         contrato = service.obter_contrato(contrato_id)
         if not contrato:
             return HTMLResponse(content="Contrato não encontrado", status_code=404)
@@ -723,8 +816,111 @@ def imprimir_contrato(contrato_id: int, request: Request):
         })
     except Exception as e:
         return HTMLResponse(content=f"Erro ao gerar impressão: {str(e)}", status_code=400)
-    finally:
-        db.close()
+
+
+@app.get("/contratos/{contrato_id}/editar", response_class=HTMLResponse)
+def editar_contrato_form(contrato_id: int, request: Request, db: Session = Depends(get_db)):
+    """Exibe formulário para editar contrato"""
+    from crm_modules.contratos.service import ContratoService
+    try:
+        service = ContratoService(repository_session=db)
+        contrato = service.obter_contrato(contrato_id)
+        if not contrato:
+            return templates.TemplateResponse("contratos.html", {"request": request, "error": "Contrato não encontrado"})
+        return templates.TemplateResponse("novo_contrato.html", {"request": request, "contrato": contrato})
+    except Exception as e:
+        return templates.TemplateResponse("contratos.html", {"request": request, "error": str(e)})
+
+
+@app.post("/contratos/{contrato_id}/editar")
+async def atualizar_contrato(contrato_id: int, request: Request, db: Session = Depends(get_db)):
+    """Atualiza um contrato"""
+    from crm_modules.contratos.service import ContratoService
+    from crm_modules.contratos.schemas import ContratoUpdate
+    try:
+        form_data = await request.form()
+        contrato_data = ContratoUpdate(
+            titulo=form_data.get("titulo"),
+            descricao=form_data.get("descricao"),
+            valor_contrato=float(form_data.get("valor_contrato")) if form_data.get("valor_contrato") else None,
+            moeda=form_data.get("moeda"),
+            data_vigencia_inicio=form_data.get("data_vigencia_inicio"),
+            data_vigencia_fim=form_data.get("data_vigencia_fim"),
+            observacoes=form_data.get("observacoes")
+        )
+        service = ContratoService(repository_session=db)
+        service.atualizar_contrato(contrato_id, contrato_data)
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/contratos", status_code=303)
+    except Exception as e:
+        from crm_modules.contratos.service import ContratoService
+        service = ContratoService(repository_session=db)
+        contrato = service.obter_contrato(contrato_id)
+        return templates.TemplateResponse("novo_contrato.html", {"request": request, "contrato": contrato, "error": str(e)})
+
+
+@app.get("/contratos/{contrato_id}/pdf")
+def gerar_pdf_contrato(contrato_id: int, db: Session = Depends(get_db)):
+    """Gera PDF do contrato"""
+    from crm_modules.contratos.service import ContratoService
+    try:
+        service = ContratoService(repository_session=db)
+        pdf_bytes = service.gerar_pdf_contrato(contrato_id)
+        from fastapi.responses import Response
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=contrato_{contrato_id}.pdf"}
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/contratos/{contrato_id}/detalhes", response_class=JSONResponse)
+def obter_detalhes_contrato_json(contrato_id: int, db: Session = Depends(get_db)):
+    """Obtém detalhes de um contrato em formato JSON"""
+    from crm_modules.contratos.service import ContratoService
+    from crm_modules.contratos.service import ContratoService
+    try:
+        service = ContratoService(repository_session=db)
+        contrato = service.obter_contrato(contrato_id)
+        if not contrato:
+            return JSONResponse({"error": "Contrato não encontrado"}, status_code=404)
+        
+        # Converter contrato para dicionário
+        contrato_dict = {
+            "id": contrato.id,
+            "titulo": contrato.titulo,
+            "cliente_id": contrato.cliente_id,
+            "tipo_contrato": contrato.tipo_contrato.value if hasattr(contrato.tipo_contrato, "value") else contrato.tipo_contrato,
+            "status_assinatura": contrato.status_assinatura.value if hasattr(contrato.status_assinatura, "value") else contrato.status_assinatura,
+            "data_criacao": contrato.data_criacao.isoformat() if contrato.data_criacao else None,
+            "data_assinatura": contrato.data_assinatura.isoformat() if contrato.data_assinatura else None,
+            "data_vigencia_inicio": contrato.data_vigencia_inicio.isoformat() if contrato.data_vigencia_inicio else None,
+            "data_vigencia_fim": contrato.data_vigencia_fim.isoformat() if contrato.data_vigencia_fim else None,
+            "valor_contrato": contrato.valor_contrato,
+            "moeda": contrato.moeda,
+            "descricao": contrato.descricao,
+            "observacoes": contrato.observacoes
+        }
+        
+        return JSONResponse(contrato_dict)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/contratos/{contrato_id}", response_class=HTMLResponse)
+def detalhes_contrato(contrato_id: int, request: Request, db: Session = Depends(get_db)):
+    """Exibe detalhes de um contrato"""
+    from crm_modules.contratos.service import ContratoService
+    try:
+        service = ContratoService(repository_session=db)
+        contrato = service.obter_contrato(contrato_id)
+        if not contrato:
+            return templates.TemplateResponse("contratos.html", {"request": request, "error": "Contrato não encontrado"})
+        return templates.TemplateResponse("contrato_detalhes.html", {"request": request, "contrato": contrato})
+    except Exception as e:
+        return templates.TemplateResponse("contratos.html", {"request": request, "error": str(e)})
 
 
 # ============================================
@@ -732,9 +928,81 @@ def imprimir_contrato(contrato_id: int, request: Request):
 # ============================================
 
 @app.get("/relatorios/contratos", response_class=HTMLResponse)
-def relatorios_contratos(request: Request):
+def relatorios_contratos(request: Request, db: Session = Depends(get_db)):
     """Página de relatórios de contratos"""
-    return templates.TemplateResponse("relatorios_contratos.html", {"request": request})
+    try:
+        from crm_modules.contratos.service import ContratoService
+        service = ContratoService(repository_session=db)
+        contratos = service.listar_todos_contratos()
+        
+        # Calcular estatísticas
+        stats = {
+            "total": len(contratos),
+            "aguardando": len([c for c in contratos if c.status_assinatura == "pendente"]),
+            "assinado": len([c for c in contratos if c.status_assinatura == "assinado"]),
+            "liberado": len([c for c in contratos if c.status_assinatura == "liberado"]),
+            "vencendo_30_dias": 0,
+            "vencidos": 0
+        }
+        
+        # Contratos recentes (últimos 30 dias)
+        from datetime import datetime, timedelta
+        hoje = datetime.now()
+        data_limite = hoje - timedelta(days=30)
+        contratos_recentes = [c for c in contratos if c.data_criacao and c.data_criacao > data_limite]
+        
+        return templates.TemplateResponse("relatorios_contratos.html", {
+            "request": request,
+            "stats": stats,
+            "contratos_recentes": contratos_recentes
+        })
+    except Exception as e:
+        print(f"Erro ao carregar relatório de contratos: {e}")
+        return templates.TemplateResponse("relatorios_contratos.html", {
+            "request": request,
+            "stats": {"total": 0, "aguardando": 0, "assinado": 0, "liberado": 0, "vencendo_30_dias": 0, "vencidos": 0},
+            "contratos_recentes": []
+        })
+
+
+@app.get("/relatorios/clientes", response_class=HTMLResponse)
+def relatorios_clientes(request: Request, db: Session = Depends(get_db)):
+    """Página de relatórios de clientes"""
+    try:
+        from crm_modules.clientes.service import ClienteService
+        service = ClienteService(repository_session=db)
+        clientes = service.listar_clientes()
+        
+        # Calcular estatísticas
+        stats = {
+            "total": len(clientes),
+            "ativos": len([c for c in clientes if c.ativo]),
+            "inativos": len([c for c in clientes if not c.ativo]),
+            "novos_mes": 0,
+            "cancelados_mes": 0,
+            "receita_mensal": 0,
+            "clientes_urbanos": 0,
+            "clientes_rurais": 0
+        }
+        
+        # Clientes recentes (últimos 30 dias)
+        from datetime import datetime, timedelta
+        hoje = datetime.now()
+        data_limite = hoje - timedelta(days=30)
+        clientes_recentes = [c for c in clientes if c.data_criacao and c.data_criacao > data_limite]
+        
+        return templates.TemplateResponse("relatorios_clientes.html", {
+            "request": request,
+            "stats": stats,
+            "clientes_recentes": clientes_recentes
+        })
+    except Exception as e:
+        print(f"Erro ao carregar relatório de clientes: {e}")
+        return templates.TemplateResponse("relatorios_clientes.html", {
+            "request": request,
+            "stats": {"total": 0, "ativos": 0, "inativos": 0, "novos_mes": 0, "cancelados_mes": 0, "receita_mensal": 0, "clientes_urbanos": 0, "clientes_rurais": 0},
+            "clientes_recentes": []
+        })
 
 
 # ============================================

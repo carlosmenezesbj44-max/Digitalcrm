@@ -201,7 +201,7 @@
     async function carregarFaturas() {
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/v1/faturamento/faturas/', {
+            const response = await fetch('/api/v1/faturas/', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -336,7 +336,7 @@
 
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`/api/v1/faturamento/faturas/${faturaId}/pagamento`, {
+            const response = await fetch(`/api/v1/faturas/${faturaId}/marcar-paga`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -368,23 +368,23 @@
         const clienteId = document.getElementById('clienteSelecionado').value;
         if (!clienteId) return;
 
+        const hoje = new Date();
+        const mes = hoje.getMonth() + 1;
+        const ano = hoje.getFullYear();
+
         showLoading('Gerando fatura...');
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/v1/faturamento/faturas', {
+            const response = await fetch(`/api/v1/faturas/gerar-mensal/${mes}/${ano}?cliente_id=${clienteId}`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ cliente_id: clienteId })
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-            if (data.success) {
+            if (data.faturas && data.faturas.length > 0) {
                 showToast('Fatura gerada!', 'success');
                 await carregarFaturas();
             } else {
-                showToast(data.message || 'Erro', 'error');
+                showToast('Já existe fatura para este mês/ano', 'warning');
             }
         } catch (error) {
             showToast('Erro ao gerar fatura', 'error');
@@ -395,19 +395,22 @@
 
     async function gerarFaturasMensais() {
         if (!confirm('Gerar faturas para todos os clientes?')) return;
+        const hoje = new Date();
+        const mes = hoje.getMonth() + 1;
+        const ano = hoje.getFullYear();
         showLoading('Gerando faturas...');
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/v1/faturamento/faturas/gerar-todas', {
+            const response = await fetch(`/api/v1/faturas/gerar-mensal/${mes}/${ano}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-            if (data.success) {
-                showToast(`${data.geradas} faturas geradas!`, 'success');
+            if (data.faturas) {
+                showToast(`${data.faturas.length} faturas geradas!`, 'success');
                 await carregarFaturas();
             } else {
-                showToast(data.message || 'Erro', 'error');
+                showToast('Erro ao gerar faturas', 'error');
             }
         } catch (error) {
             showToast('Erro ao gerar faturas', 'error');

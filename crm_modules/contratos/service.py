@@ -372,6 +372,41 @@ class ContratoService:
 
         return self._model_to_domain(novo_contrato)
 
+    def atualizar_contrato(self, contrato_id: int, contrato_data: ContratoUpdate, usuario_id: str = None) -> Contrato:
+        """Atualiza um contrato com auditoria"""
+        usuario = usuario_id or self.usuario_id
+        
+        model = self.repository.get_by_id(contrato_id)
+        if not model:
+            raise NotFoundException("Contrato não encontrado")
+        
+        # Atualizar campos
+        if contrato_data.titulo is not None:
+            model.titulo = contrato_data.titulo
+        if contrato_data.descricao is not None:
+            model.descricao = contrato_data.descricao
+        if contrato_data.status_assinatura is not None:
+            from crm_modules.contratos.models import StatusAssinatura
+            model.status_assinatura = StatusAssinatura(contrato_data.status_assinatura)
+        if contrato_data.arquivo_contrato is not None:
+            model.arquivo_contrato = contrato_data.arquivo_contrato
+        if contrato_data.observacoes is not None:
+            model.observacoes = contrato_data.observacoes
+        if contrato_data.data_vigencia_fim is not None:
+            model.data_vigencia_fim = contrato_data.data_vigencia_fim
+        if contrato_data.valor_contrato is not None:
+            model.valor_contrato = contrato_data.valor_contrato
+        if contrato_data.status_renovacao is not None:
+            from crm_modules.contratos.models import StatusRenovacao
+            model.status_renovacao = StatusRenovacao(contrato_data.status_renovacao)
+        
+        model.atualizado_por = usuario
+        model.atualizado_em = datetime.utcnow()
+        
+        model = self.repository.update(model)
+        
+        return self._model_to_domain(model)
+
     def deletar_contrato(self, contrato_id: int, usuario_id: str = None, motivo: str = None) -> bool:
         """Deleta um contrato (soft delete) com auditoria"""
         usuario = usuario_id or self.usuario_id
@@ -428,14 +463,14 @@ class ContratoService:
             "descricao": model.descricao,
             "status_assinatura": model.status_assinatura.value if model.status_assinatura else "aguardando",
             "tipo_contrato": model.tipo_contrato.value if model.tipo_contrato else "servico",
-            "data_criacao": model.data_criacao.isoformat() if model.data_criacao else None,
-            "data_assinatura": model.data_assinatura.isoformat() if model.data_assinatura else None,
+            "data_criacao": model.data_criacao,
+            "data_assinatura": model.data_assinatura,
             "arquivo_contrato": model.arquivo_contrato,
             "hash_assinatura": model.hash_assinatura,
             "assinatura_digital": model.assinatura_digital,
             "observacoes": model.observacoes,
-            "data_vigencia_inicio": model.data_vigencia_inicio.isoformat() if model.data_vigencia_inicio else None,
-            "data_vigencia_fim": model.data_vigencia_fim.isoformat() if model.data_vigencia_fim else None,
+            "data_vigencia_inicio": model.data_vigencia_inicio,
+            "data_vigencia_fim": model.data_vigencia_fim,
             "valor_contrato": model.valor_contrato,
             "moeda": model.moeda,
             "status_renovacao": model.status_renovacao.value if model.status_renovacao else "renovacao_manual",
@@ -443,8 +478,8 @@ class ContratoService:
             "frequencia_pagamento": model.frequencia_pagamento,
             "desconto_total": model.desconto_total,
             "juros_atraso_percentual": model.juros_atraso_percentual,
-            "data_primeiro_pagamento": model.data_primeiro_pagamento.isoformat() if model.data_primeiro_pagamento else None,
-            "data_proximo_pagamento": model.data_proximo_pagamento.isoformat() if model.data_proximo_pagamento else None
+            "data_primeiro_pagamento": model.data_primeiro_pagamento,
+            "data_proximo_pagamento": model.data_proximo_pagamento
         }
 
     def gerar_pdf_contrato(self, contrato_id: int, empresa_dados: Optional[dict] = None) -> bytes:

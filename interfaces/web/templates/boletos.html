@@ -288,7 +288,7 @@
     async function carregarFaturas() {
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/v1/faturamento/faturas/?status=pendente', {
+            const response = await fetch('/api/v1/faturas/', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -307,7 +307,7 @@
     async function carregarBoletos() {
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/faturamento/boletos', {
+            const response = await fetch('/api/v1/boletos', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -391,14 +391,14 @@
                     data_vencimento: document.getElementById('boletoDiretoVencimento').value,
                     descricao: document.getElementById('boletoDiretoDescricao').value
                 };
-                response = await fetch('/api/faturamento/boletos', {
+                response = await fetch('/api/v1/boletos', {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
             } else {
                 const faturaId = document.getElementById('boletoFaturaId').value;
-                response = await fetch(`/api/faturamento/faturas/${faturaId}/boleto`, {
+                response = await fetch(`/api/v1/faturas/${faturaId}/marcar-paga`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -452,7 +452,7 @@
         showLoading('Sincronizando...');
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/faturamento/boletos/sincronizar/todos', {
+            const response = await fetch('/api/v1/boletos/sincronizar/todos', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

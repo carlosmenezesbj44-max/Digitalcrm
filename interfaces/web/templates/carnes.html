@@ -284,7 +284,7 @@
     async function carregarCarnes() {
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/faturamento/carnes', {
+            const response = await fetch('/api/v1/carnes', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -423,7 +423,7 @@
         showLoading('Criando carnê...');
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/faturamento/carnes', {
+            const response = await fetch('/api/v1/carnes', {
                 method: 'POST',
                 headers: { 
                     'Authorization': `Bearer ${token}`, 
@@ -518,7 +518,7 @@
         showLoading('Registrando pagamento...');
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`/api/faturamento/parcelas/${parcelaId}/pagar`, {
+            const response = await fetch(`/api/v1/parcelas/${parcelaId}/pagar`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -552,7 +552,7 @@
         showLoading('Excluindo carnê...');
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch(`/api/faturamento/carnes/${carneId}`, {
+            const response = await fetch(`/api/v1/carnes/${carneId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
