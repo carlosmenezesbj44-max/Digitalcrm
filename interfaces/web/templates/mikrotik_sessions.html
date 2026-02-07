@@ -9,9 +9,14 @@
             <h1 class="h3 mb-0"><i class="bi bi-eye"></i> Sessões Mikrotik</h1>
             <p class="text-muted mb-0">Visualize as sessões ativas do equipamento Mikrotik</p>
         </div>
-        <button class="btn btn-outline-secondary" onclick="carregarSessoes()">
-            <i class="bi bi-arrow-clockwise"></i> Atualizar
-        </button>
+        <div class="d-flex gap-2">
+            <select class="form-select border-secondary bg-transparent text-white" id="filtroServidor" onchange="carregarSessoes()" style="width: auto;">
+                <option value="">Carregando...</option>
+            </select>
+            <button class="btn btn-outline-secondary" onclick="carregarSessoes()">
+                <i class="bi bi-arrow-clockwise"></i> Atualizar
+            </button>
+        </div>
     </div>
 
     <div class="card border-0 shadow-sm">
@@ -43,21 +48,70 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', carregarSessoes);
+    document.addEventListener('DOMContentLoaded', function() {
+        carregarServidores();
+        carregarSessoes();
+    });
+
+    async function carregarServidores() {
+        try {
+            const token = localStorage.getItem('access_token');
+            // Nova API para listar todos os servidores MikroTik
+            const response = await fetch('/api/v1/mikrotik/servers', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const select = document.getElementById('filtroServidor');
+                
+                // Limpar opções anteriores
+                select.innerHTML = '';
+                
+                if (data.servidores && data.servidores.length > 0) {
+                    data.servidores.forEach(servidor => {
+                        const option = document.createElement('option');
+                        option.value = servidor.id;
+                        option.text = `${servidor.nome} (${servidor.ip})`;
+                        if (servidor.ativo) {
+                            select.appendChild(option);
+                        }
+                    });
+                    
+                    // Selecionar o primeiro por padrão
+                    if (data.servidores.length === 1) {
+                        select.value = data.servidores[0].id;
+                    }
+                } else {
+                    select.innerHTML = '<option value="">Nenhum servidor encontrado</option>';
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao carregar servidores:', error);
+            document.getElementById('filtroServidor').innerHTML = '<option value="">Erro ao carregar</option>';
+        }
+    }
 
     async function carregarSessoes() {
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/v1/mikrotik/sessions', {
+            const servidorId = document.getElementById('filtroServidor').value;
+            
+            // Passar servidor_id para a API
+            let url = '/api/v1/mikrotik/sessions';
+            if (servidorId) {
+                url += `?servidor_id=${servidorId}`;
+            }
+            
+            const response = await fetch(url, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
             if (response.ok) {
-                const sessoes = await response.json();
-                renderizarSessoes(sessoes);
+                const data = await response.json();
+                renderizarSessoes(data);
             } else {
                 document.getElementById('corpoSessoes').innerHTML = 
-                    '<tr><td colspan="6" class="text-center py-4" style="color: var(--text-secondary);">Nenhuma sessão ativa</td></tr>';
+                    '<tr><td colspan="6" class="text-center py-4" style="color: var(--text-secondary);">Nenhuma sessão ativa ou erro de conexão</td></tr>';
             }
         } catch (error) {
             document.getElementById('corpoSessoes').innerHTML = 
@@ -65,9 +119,11 @@
         }
     }
 
-    function renderizarSessoes(sessoes) {
+    function renderizarSessoes(data) {
         const corpo = document.getElementById('corpoSessoes');
         corpo.innerHTML = '';
+
+        const sessoes = data.sessions || [];
 
         if (sessoes.length === 0) {
             corpo.innerHTML = '<tr><td colspan="6" class="text-center py-4" style="color: var(--text-secondary);">Nenhuma sessão ativa</td></tr>';
@@ -77,13 +133,13 @@
         sessoes.forEach(s => {
             corpo.innerHTML += `
                 <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.username}</td>
-                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.ip}</td>
-                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.mac || '-'}</td>
-                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.uptime}</td>
-                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.type}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.name || s.username || '-'}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.address || s.ip || '-'}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s['caller-id'] || s.mac || '-'}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.uptime || '-'}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.service || s.type || 'pppoe'}</td>
                     <td class="py-3">
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="desconectarSessao('${s.id}')" title="Desconectar">
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="desconectarSessao('${s.id || s['.id']}')" title="Desconectar">
                             <i class="bi bi-x-circle"></i>
                         </button>
                     </td>
@@ -97,7 +153,14 @@
         showLoading('Desconectando...');
         try {
             const token = localStorage.getItem('access_token');
-            await fetch(`/api/v1/mikrotik/sessions/${id}/disconnect`, {
+            const servidorId = document.getElementById('filtroServidor').value;
+            
+            let url = `/api/v1/mikrotik/sessions/${id}/disconnect`;
+            if (servidorId) {
+                url += `?servidor_id=${servidorId}`;
+            }
+            
+            await fetch(url, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

@@ -2,8 +2,13 @@ from crm_core.config.settings import settings
 from typing import Optional
 
 
-def get_mikrotik_server():
-    """Obtém o servidor Mikrotik ativo do banco de dados."""
+def get_mikrotik_server(servidor_id: int = None):
+    """
+    Obtém o servidor Mikrotik do banco de dados.
+    
+    Args:
+        servidor_id: ID opcional do servidor. Se None, retorna o primeiro servidor ativo.
+    """
     from crm_core.db.base import get_db_session
     from crm_modules.servidores.repository import ServidorRepository
     from crm_modules.servidores.models import ServidorModel
@@ -11,8 +16,17 @@ def get_mikrotik_server():
     db = get_db_session()
     try:
         repo = ServidorRepository(db)
+        
+        # Se foi fornecido ID, busca o servidor específico
+        if servidor_id:
+            servidor = repo.get_by_id(servidor_id)
+            if servidor and servidor.tipo_conexao and servidor.tipo_conexao.lower() == 'mikrotik':
+                return servidor
+            return None
+        
+        # Caso contrário, busca o primeiro servidor ativo
         servidores = repo.listar_servidores_ativos()
-        mikrotik_servers = [s for s in servidores if s.tipo_conexao.lower() == 'mikrotik']
+        mikrotik_servers = [s for s in servidores if s.tipo_conexao and s.tipo_conexao.lower() == 'mikrotik']
         if mikrotik_servers:
             return mikrotik_servers[0]  # Usa o primeiro
         return None
@@ -160,6 +174,7 @@ def sincronizar_cliente_mikrotik(username: str, password: str, profile: str = "d
 def coletar_logs_mikrotik(host: Optional[str] = None, user: Optional[str] = None, secret: Optional[str] = None):
     """
     Coleta logs do MikroTik.
+    Tenta múltiplas abordagens para obter os logs.
     """
     if not any([host, user, secret]):
         server = get_mikrotik_server()
@@ -188,14 +203,51 @@ def coletar_logs_mikrotik(host: Optional[str] = None, user: Optional[str] = None
             plaintext_login=True
         )
         api = connection.get_api()
-
-        log_resource = api.get_resource('/log')
-        logs = log_resource.get()
+        
+        logs = []
+        
+        # Tentar endpoint /log primeiro
+        try:
+            log_resource = api.get_resource('/log')
+            logs = log_resource.get()
+        except Exception as e:
+            print(f"Erro ao acessar /log: {e}")
+            
+            # Tentar alternativa: /system/history
+            try:
+                history_resource = api.get_resource('/system/history')
+                logs = history_resource.get()
+                # Converter formato do history para formato de log
+                if logs:
+                    logs = [
+                        {
+                            'time': log.get('time', ''),
+                            'topics': 'system',
+                            'message': log.get('message', ''),
+                            'id': log.get('id', '')
+                        }
+                        for log in logs
+                    ]
+            except Exception as e2:
+                print(f"Erro ao acessar /system/history: {e2}")
+        
         connection.disconnect()
-        return logs
+        
+        # Processar logs para garantir formato consistente
+        processed_logs = []
+        for log in logs:
+            processed_logs.append({
+                'time': log.get('time', log.get('data_hora', '')),
+                'topics': log.get('topics', log.get('tipo', 'INFO')),
+                'message': log.get('message', log.get('mensagem', '')),
+                'id': log.get('id', ''),
+                'servidor_nome': log.get('servidor_nome', 'MikroTik')
+            })
+        
+        return processed_logs
 
     except Exception as e:
-        error_msg = f"Erro ao conectar ao MikroTik ({host}): {str(e)}"
+        error_msg = f"Erro ao conectar ao MikroTalk ({host}): {str(e)}"
         print(error_msg)
         raise Exception(error_msg)
 
@@ -220,18 +272,20 @@ def monitorar_sessoes_mikrotik(host: Optional[str] = None, user: Optional[str] =
         return []
 
     try:
-        import librouteros
+        import routeros_api
 
-        # Usar librouteros para alternativa
-        api = librouteros.connect(
-            host=host,
+        connection = routeros_api.RouterOsApiPool(
+            host,
             username=user,
-            password=secret
+            password=secret,
+            port=8728,
+            plaintext_login=True
         )
+        api = connection.get_api()
 
-        active_sessions = api('/ppp/active/print')
-        api.close()
-        return list(active_sessions)
+        active_sessions = api.get_resource('/ppp/active').get()
+        connection.disconnect()
+        return active_sessions
 
     except Exception as e:
         print(f"Erro ao monitorar sessões: {e}")

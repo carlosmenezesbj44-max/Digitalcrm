@@ -65,6 +65,7 @@
 {% block extra_js %}
 <script>
     let logs = [];
+    let servidorSelecionado = null;
 
     document.addEventListener('DOMContentLoaded', function() {
         carregarServidores();
@@ -74,19 +75,31 @@
     async function carregarServidores() {
         try {
             const token = localStorage.getItem('access_token');
-            const response = await fetch('/api/v1/mikrotik/status', {
+            // Nova API para listar todos os servidores MikroTik
+            const response = await fetch('/api/v1/mikrotik/servers', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
                 const data = await response.json();
                 const select = document.getElementById('filtroServidor');
-                // Se a API retornar múltiplos servidores no futuro, populamos aqui
-                // Por enquanto, a API parece retornar apenas o servidor configurado
-                if (data.server) {
-                    const option = document.createElement('option');
-                    option.value = data.server.ip;
-                    option.text = data.server.name;
-                    select.appendChild(option);
+                
+                // Limpar opções anteriores
+                select.innerHTML = '<option value="" class="bg-dark">Selecione um servidor...</option>';
+                
+                if (data.servidores && data.servidores.length > 0) {
+                    data.servidores.forEach(servidor => {
+                        const option = document.createElement('option');
+                        option.value = servidor.id;
+                        option.text = `${servidor.nome} (${servidor.ip})`;
+                        if (servidor.ativo) {
+                            select.appendChild(option);
+                        }
+                    });
+                    
+                    // Selecionar o primeiro por padrão
+                    if (data.servidores.length === 1) {
+                        select.value = data.servidores[0].id;
+                    }
                 }
             }
         } catch (error) {
@@ -102,8 +115,13 @@
             const token = localStorage.getItem('access_token');
             const servidorId = document.getElementById('filtroServidor').value;
             
-            // Alterado para a rota correta da API
-            const response = await fetch(`/api/v1/mikrotik/logs?limit=100`, {
+            // Passar servidor_id para a API
+            let url = `/api/v1/mikrotik/logs?limit=100`;
+            if (servidorId) {
+                url += `&servidor_id=${servidorId}`;
+            }
+            
+            const response = await fetch(url, {
                 headers: { 
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

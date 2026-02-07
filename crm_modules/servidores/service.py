@@ -107,4 +107,74 @@ class ServidorService:
 
     def listar_servidores_ativos(self):
         models = self.repository.get_active_servers()
-        return [self.obter_servidor(m.id) for m in models]
+        servidores = []
+        for model in models:
+            servidor = self.obter_servidor(model.id)
+            # Adicionar status de conexão
+            servidor.status = self._verificar_status_conexao(servidor)
+            servidores.append(servidor)
+        return servidores
+    
+    def _verificar_status_conexao(self, servidor) -> str:
+        """Verifica o status de conexão com o servidor"""
+        if servidor.tipo_conexao.lower() != "mikrotik":
+            return "offline"
+        
+        try:
+            import routeros_api
+            connection = routeros_api.RouterOsApiPool(
+                servidor.ip,
+                username=servidor.usuario,
+                password=servidor.senha,
+                port=8728,
+                plaintext_login=True
+            )
+            api = connection.get_api()
+            
+            # Verificar se é possível obter informações do sistema
+            system_resource = api.get_resource('/system/resource')
+            system_resource.get()[0]
+            
+            connection.disconnect()
+            
+            return "online"
+            
+        except Exception as e:
+            return "offline"
+    
+    def testar_conexao(self, servidor_id: int) -> dict:
+        """Testa a conexão com um servidor MikroTik"""
+        servidor = self.obter_servidor(servidor_id)
+        
+        if servidor.tipo_conexao.lower() != "mikrotik":
+            return {"success": False, "message": "Tipo de servidor não é MikroTik"}
+        
+        try:
+            import routeros_api
+            connection = routeros_api.RouterOsApiPool(
+                servidor.ip,
+                username=servidor.usuario,
+                password=servidor.senha,
+                port=8728,
+                plaintext_login=True
+            )
+            api = connection.get_api()
+            
+            # Obter informações do sistema para verificar a conexão
+            system_resource = api.get_resource('/system/resource')
+            system_info = system_resource.get()[0]
+            
+            connection.disconnect()
+            
+            return {
+                "success": True,
+                "message": "Conexão bem-sucedida",
+                "informacoes": {
+                    "device": system_info.get('board-name', 'Desconhecido'),
+                    "version": system_info.get('version', 'Desconhecido'),
+                    "modelo": system_info.get('model', 'Desconhecido')
+                }
+            }
+            
+        except Exception as e:
+            return {"success": False, "message": f"Erro ao conectar: {str(e)}"}

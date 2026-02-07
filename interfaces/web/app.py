@@ -15,6 +15,15 @@ app.include_router(usuarios_router)
 from crm_modules.servidores.api import router as servidores_router
 app.include_router(servidores_router, prefix="/api/v1/servidores")
 
+# Include planos API routes
+from crm_modules.planos.api import router as planos_router
+app.include_router(planos_router, prefix="/api/v1/planos")
+
+# Include MikroTik API routes
+from crm_modules.mikrotik.api import router as mikrotik_router
+# Remove prefix duplicate since router already has /mikrotik prefix
+app.include_router(mikrotik_router, prefix="/api/v1")
+
 app.mount("/static", StaticFiles(directory="interfaces/web/static"), name="static")
 templates = Jinja2Templates(directory="interfaces/web/templates")
 
@@ -43,7 +52,7 @@ async def dashboard(request: Request):
 async def servidores(request: Request, db: Session = Depends(get_db)):
     from crm_modules.servidores.service import ServidorService
     service = ServidorService(repository_session=db)
-    servidores = service.listar_servidores()
+    servidores = service.listar_servidores_ativos()
     return templates.TemplateResponse("servidores.html", {"request": request, "servidores": servidores})
 
 
@@ -128,6 +137,17 @@ async def excluir_servidor(servidor_id: int, db: Session = Depends(get_db)):
         return {"success": False, "message": str(e)}
 
 
+@app.post("/servidores/{servidor_id}/testar-conexao")
+async def testar_conexao(servidor_id: int, db: Session = Depends(get_db)):
+    from crm_modules.servidores.service import ServidorService
+    try:
+        service = ServidorService(repository_session=db)
+        result = service.testar_conexao(servidor_id)
+        return result
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
 @app.get("/clientes", response_class=HTMLResponse)
 def listar_clientes(request: Request, db: Session = Depends(get_db)):
     from crm_modules.clientes.service import ClienteService
@@ -146,10 +166,113 @@ def novo_cliente_form(request: Request):
     return templates.TemplateResponse("novo_cliente.html", {"request": request})
 
 
+@app.get("/planos", response_class=HTMLResponse)
+def listar_planos(request: Request, db: Session = Depends(get_db)):
+    """Exibe página de listagem de planos"""
+    from crm_modules.planos.service import PlanoService
+    service = PlanoService(repository_session=db)
+    planos = service.listar_planos_ativos()
+    return templates.TemplateResponse("planos.html", {"request": request, "planos": planos})
+
+
+@app.get("/planos/novo", response_class=HTMLResponse)
+def novo_plano_form(request: Request):
+    """Exibe formulário para criar novo plano"""
+    return templates.TemplateResponse("novo_plano.html", {"request": request})
+
+
+@app.post("/planos/novo")
+async def criar_plano(request: Request, db: Session = Depends(get_db)):
+    """Cria um novo plano"""
+    from crm_modules.planos.service import PlanoService
+    from crm_modules.planos.schemas import PlanoCreate
+    
+    try:
+        form_data = await request.form()
+        plano_data = PlanoCreate(
+            nome=form_data.get("nome"),
+            velocidade_download=int(form_data.get("velocidade_download")),
+            velocidade_upload=int(form_data.get("velocidade_upload")),
+            valor_mensal=float(form_data.get("valor_mensal")),
+            descricao=form_data.get("descricao"),
+            ativo=True
+        )
+        
+        service = PlanoService(repository_session=db)
+        service.criar_plano(plano_data)
+        
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/planos", status_code=303)
+    except Exception as e:
+        return templates.TemplateResponse("novo_plano.html", {"request": request, "error": str(e)})
+
+
+@app.get("/planos/{plano_id}/editar", response_class=HTMLResponse)
+def editar_plano_form(plano_id: int, request: Request, db: Session = Depends(get_db)):
+    """Exibe formulário para editar plano"""
+    from crm_modules.planos.service import PlanoService
+    service = PlanoService(repository_session=db)
+    plano = service.obter_plano(plano_id)
+    return templates.TemplateResponse("novo_plano.html", {"request": request, "plano": plano})
+
+
+@app.post("/planos/{plano_id}/editar")
+async def atualizar_plano(plano_id: int, request: Request, db: Session = Depends(get_db)):
+    """Atualiza um plano"""
+    from crm_modules.planos.service import PlanoService
+    from crm_modules.planos.schemas import PlanoUpdate
+    
+    try:
+        form_data = await request.form()
+        plano_data = PlanoUpdate(
+            nome=form_data.get("nome"),
+            velocidade_download=int(form_data.get("velocidade_download")),
+            velocidade_upload=int(form_data.get("velocidade_upload")),
+            valor_mensal=float(form_data.get("valor_mensal")),
+            descricao=form_data.get("descricao"),
+            ativo=form_data.get("ativo") == "sim"
+        )
+        
+        service = PlanoService(repository_session=db)
+        service.atualizar_plano(plano_id, plano_data)
+        
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/planos", status_code=303)
+    except Exception as e:
+        from crm_modules.planos.service import PlanoService
+        service = PlanoService(repository_session=db)
+        plano = service.obter_plano(plano_id)
+        return templates.TemplateResponse("novo_plano.html", {"request": request, "plano": plano, "error": str(e)})
+
+
+@app.post("/planos/{plano_id}/deletar")
+async def desativar_plano(plano_id: int, db: Session = Depends(get_db)):
+    """Desativa um plano"""
+    from crm_modules.planos.service import PlanoService
+    try:
+        service = PlanoService(repository_session=db)
+        service.desativar_plano(plano_id)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
 @app.get("/minha-conta", response_class=HTMLResponse)
 def minha_conta(request: Request):
     """Exibe página de perfil do usuário"""
     return templates.TemplateResponse("minha_conta.html", {"request": request})
+
+
+@app.get("/mikrotik/logs", response_class=HTMLResponse)
+def mikrotik_logs(request: Request):
+    """Exibe página de logs do MikroTik"""
+    return templates.TemplateResponse("mikrotik_logs.html", {"request": request})
+
+
+@app.get("/mikrotik/sessions", response_class=HTMLResponse)
+def mikrotik_sessions(request: Request):
+    """Exibe página de sessões do MikroTik"""
+    return templates.TemplateResponse("mikrotik_sessions.html", {"request": request})
 
 
 @app.post("/clientes/novo")

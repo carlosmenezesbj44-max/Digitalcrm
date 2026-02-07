@@ -19,8 +19,14 @@ from crm_modules.contratos.models import ContratoModel
 class MikrotikService:
     """Serviço para operações em tempo real com MikroTik"""
     
-    def __init__(self):
-        self.server = get_mikrotik_server()
+    def __init__(self, servidor_id: int = None):
+        """
+        Inicializa o serviço com um servidor específico ou o primeiro encontrado.
+        
+        Args:
+            servidor_id: ID opcional do servidor MikroTik
+        """
+        self.server = get_mikrotik_server(servidor_id=servidor_id)
         
     def obter_configuracoes(self):
         """Obtém as configurações atuais do MikroTik"""
@@ -247,8 +253,12 @@ class MikrotikService:
                 secret=self.server.senha if self.server else None
             )
             
-            # Filtrar e ordenar logs
-            recent_logs = sorted(logs, key=lambda x: x.get('time', ''), reverse=True)[:limit]
+            # Tentar ordenar por time, mas tratar erros graciosamente
+            try:
+                recent_logs = sorted(logs, key=lambda x: x.get('time', ''), reverse=True)[:limit]
+            except Exception:
+                # Se a ordenação falhar, retorna os logs na ordem original
+                recent_logs = logs[:limit]
             
             return {
                 'status': 'success',
@@ -307,6 +317,49 @@ class MikrotikService:
             return {
                 'status': 'error',
                 'message': f'Erro ao atualizar credenciais: {str(e)}'
+            }
+
+    def sincronizar_planos(self) -> Dict[str, Any]:
+        """Sincroniza todos os planos do CRM com profiles PPPoE no MikroTik"""
+        try:
+            from crm_modules.planos.service import PlanoService
+            
+            if not self.server:
+                return {'status': 'error', 'message': 'Nenhum servidor MikroTik configurado'}
+            
+            plano_service = PlanoService()
+            planos = plano_service.listar_planos_ativos()
+            
+            resultados = []
+            for plano in planos:
+                profile_result = self.criar_profile_real_time(
+                    name=plano.nome,
+                    download_limit=plano.velocidade_download,
+                    upload_limit=plano.velocidade_upload
+                )
+                resultados.append({
+                    'plano_id': plano.id,
+                    'plano_nome': plano.nome,
+                    'resultado': profile_result
+                })
+            
+            # Contar sucessos e falhas
+            sucessos = sum(1 for r in resultados if r['resultado']['status'] == 'success')
+            falhas = len(resultados) - sucessos
+            
+            return {
+                'status': 'success',
+                'message': f'Sincronização concluída: {sucessos} planos sincronizados, {falhas} falhas',
+                'resultados': resultados,
+                'total_planos': len(planos),
+                'sucessos': sucessos,
+                'falhas': falhas
+            }
+                
+        except Exception as e:
+            return {
+                'status': 'error',
+                'message': f'Erro ao sincronizar planos: {str(e)}'
             }
 
     def desconectar_sessao(self, session_id: str) -> Dict[str, Any]:

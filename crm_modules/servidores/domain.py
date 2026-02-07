@@ -1,5 +1,5 @@
 class Servidor:
-    def __init__(self, id: int, nome: str, ip: str, tipo_conexao: str, tipo_acesso: str, usuario: str, senha: str, alterar_nome: bool, ativo: bool):
+    def __init__(self, id: int, nome: str, ip: str, tipo_conexao: str, tipo_acesso: str, usuario: str, senha: str, alterar_nome: bool, ativo: bool, status: str = "offline"):
         self.id = id
         self.nome = nome
         self.ip = ip
@@ -9,3 +9,4 @@ class Servidor:
         self.senha = senha
         self.alterar_nome = alterar_nome
         self.ativo = ativo
+        self.status = status

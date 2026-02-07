@@ -14,6 +14,32 @@ from crm_core.db.models import Usuario as User
 router = APIRouter(prefix="/mikrotik", tags=["MikroTik"])
 
 
+@router.get("/servers")
+async def get_servers():
+    """Obtém lista de servidores MikroTik"""
+    from crm_core.db.base import get_db_session
+    from crm_modules.servidores.repository import ServidorRepository
+    
+    db = get_db_session()
+    try:
+        repo = ServidorRepository(db)
+        # Usar listar_servidores_ativos() ao invés de listar_todos()
+        servidores = repo.listar_servidores_ativos()
+        mikrotik_servers = [
+            {
+                'id': s.id,
+                'nome': s.nome,
+                'ip': s.ip,
+                'tipo_conexao': s.tipo_conexao,
+                'ativo': s.ativo
+            }
+            for s in servidores if s.tipo_conexao and s.tipo_conexao.lower() == 'mikrotik'
+        ]
+        return {'servidores': mikrotik_servers}
+    finally:
+        db.close()
+
+
 class ProfileCreate(BaseModel):
     name: str
     download_limit: int
@@ -39,10 +65,14 @@ class CredentialUpdate(BaseModel):
     new_profile: str = None
 
 
+class ServerParams(BaseModel):
+    servidor_id: int = None
+
+
 @router.get("/status")
-async def get_mikrotik_status():
+async def get_mikrotik_status(servidor_id: int = None):
     """Obtém o status e configurações do MikroTik"""
-    service = MikrotikService()
+    service = MikrotikService(servidor_id=servidor_id)
     result = service.obter_configuracoes()
     
     if result['status'] == 'error':
@@ -152,9 +182,9 @@ async def update_client_credentials(
 
 
 @router.get("/sessions")
-async def get_active_sessions():
+async def get_active_sessions(servidor_id: int = None):
     """Obtém as sessões PPPoE ativas"""
-    service = MikrotikService()
+    service = MikrotikService(servidor_id=servidor_id)
     result = service.obter_sessoes_ativas()
     
     if result['status'] == 'error':
@@ -164,9 +194,9 @@ async def get_active_sessions():
 
 
 @router.post("/sessions/{session_id}/disconnect")
-async def disconnect_session(session_id: str):
+async def disconnect_session(session_id: str, servidor_id: int = None):
     """Desconecta uma sessão ativa"""
-    service = MikrotikService()
+    service = MikrotikService(servidor_id=servidor_id)
     result = service.desconectar_sessao(session_id)
     
     if result['status'] == 'error':
@@ -177,10 +207,11 @@ async def disconnect_session(session_id: str):
 
 @router.get("/logs")
 async def get_logs(
+    servidor_id: int = None,
     limit: int = 50
 ):
     """Obtém logs recentes do MikroTik"""
-    service = MikrotikService()
+    service = MikrotikService(servidor_id=servidor_id)
     result = service.obter_logs_recentes(limit=limit)
     
     if result['status'] == 'error':
@@ -211,6 +242,18 @@ async def get_secrets():
         raise HTTPException(status_code=400, detail=result['message'])
     
     return {"secrets": result['secrets']}
+
+
+@router.post("/sync-plans")
+async def sync_plans(servidor_id: int = None):
+    """Sincroniza todos os planos do CRM com profiles PPPoE no MikroTik"""
+    service = MikrotikService(servidor_id=servidor_id)
+    result = service.sincronizar_planos()
+    
+    if result['status'] == 'error':
+        raise HTTPException(status_code=400, detail=result['message'])
+    
+    return result
 
 
 # Integração com o módulo de contratos

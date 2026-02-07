@@ -109,21 +109,44 @@ curl -X POST "http://localhost:8000/api/v1/mikrotik/contratos/1/sync" \
 ### Visualizar Logs do MikroTik
 
 ```bash
+# Logs do servidor padrao
 curl -X GET "http://localhost:8000/api/v1/mikrotik/logs?limit=10" \
+  -H "Authorization: Bearer seu_token_jwt"
+
+# Logs de um servidor especifico (usando servidor_id)
+curl -X GET "http://localhost:8000/api/v1/mikrotik/logs?limit=10&servidor_id=3" \
   -H "Authorization: Bearer seu_token_jwt"
 ```
 
 ### Verificar Sessões Ativas
 
 ```bash
+# Sessoes do servidor padrao
 curl -X GET "http://localhost:8000/api/v1/mikrotik/sessions" \
+  -H "Authorization: Bearer seu_token_jwt"
+
+# Sessoes de um servidor especifico
+curl -X GET "http://localhost:8000/api/v1/mikrotik/sessions?servidor_id=3" \
+  -H "Authorization: Bearer seu_token_jwt"
+```
+
+### Listar Servidores MikroTik
+
+```bash
+# Lista todos os servidores MikroTik cadastrados
+curl -X GET "http://localhost:8000/api/v1/mikrotik/servers" \
   -H "Authorization: Bearer seu_token_jwt"
 ```
 
 ### Status do MikroTik
 
 ```bash
+# Status do servidor padrao
 curl -X GET "http://localhost:8000/api/v1/mikrotik/status" \
+  -H "Authorization: Bearer seu_token_jwt"
+
+# Status de um servidor especifico
+curl -X GET "http://localhost:8000/api/v1/mikrotik/status?servidor_id=3" \
   -H "Authorization: Bearer seu_token_jwt"
 ```
 
@@ -164,6 +187,46 @@ curl -X PUT "http://localhost:8000/api/v1/mikrotik/clients/credentials" \
   }'
 ```
 
+## 🖥️ Suporte a Múltiplos Servidores
+
+O sistema agora suporta múltiplos servidores MikroTik!
+
+### Adicionar Novo Servidor
+
+Para adicionar um novo servidor MikroTik ao sistema:
+
+1. **Via Interface Web:**
+   - Acesse **Cadastros** → **Novo Servidor**
+   - Preencha os dados:
+     - Nome: "Filial SP"
+     - IP: "200.200.1.2"
+     - Tipo de Conexão: "mikrotik"
+     - Tipo de Acesso: "api"
+     - Usuário e Senha do MikroTik
+   - Salve o servidor
+
+2. **Via Banco de Dados:**
+```sql
+INSERT INTO servidores (nome, ip, tipo_conexao, tipo_acesso, usuario, senha, ativo)
+VALUES ('Filial SP', '200.200.1.2', 'mikrotik', 'api', 'admin', 'senha123', 1);
+```
+
+### Selecionar Servidor
+
+- Na interface web, há um dropdown para selecionar qual servidor visualizar
+- Na API, use o parâmetro `servidor_id` para especificar qual servidor consultar
+
+### Servidores Cadastrados
+
+```bash
+# Listar todos os servidores MikroTik
+python debug_db.py
+
+# Ou via API:
+curl -X GET "http://localhost:8000/api/v1/mikrotik/servers" \
+  -H "Authorization: Bearer seu_token_jwt"
+```
+
 ## 🐛 Resolução de Problemas
 
 ### Erro: "MikroTik não configurado"
@@ -192,6 +255,34 @@ curl -X PUT "http://localhost:8000/api/v1/mikrotik/clients/credentials" \
 1. Verifique as credenciais no MikroTik
 2. Teste o login via WinBox
 3. Atualize o `.env` com credenciais corretas
+
+### Erro: "Logs não estão sendo coletados"
+
+**Causa 1:** O usuário não tem permissão para ler logs no MikroTik.
+
+**Solução:**
+1. No MikroTik, vá em **System** → **Users**
+2. Verifique se o usuário tem a policy **read** habilitada
+3. Ou adicione o usuário ao grupo **full** temporariamente para teste
+
+**Causa 2:** Os logs estão desabilitados no MikroTik.
+
+**Solução:**
+1. No MikroTik, vá em **System** → **Logging**
+2. Verifique se há regras de log ativas
+3. Adicione uma regra para registrar eventos importantes:
+```bash
+/system logging add topics=info action=memory
+/system logging add topics=warning action=memory
+/system logging add topics=error action=memory
+```
+
+**Causa 3:** Não há logs registrados ainda.
+
+**Solução:**
+1. Gere algum tráfego ou evento no MikroTik
+2. Aguarde alguns segundos para os logs serem gerados
+3. Tente novamente coletar os logs
 
 ### Erro: "Profile já existe"
 
@@ -269,10 +360,16 @@ Se encontrar problemas:
 ### Comandos de Diagnóstico
 
 ```bash
-# Verificar status do MikroTik
+# Testar conexão com MikroTik via script
+python test_mikrotik_connection.py
+
+# Testar coleta de logs via script
+python test_mikrotik_logs.py
+
+# Verificar status do MikroTik via API
 curl -X GET "http://localhost:8000/api/v1/mikrotik/status"
 
-# Verificar logs recentes
+# Verificar logs recentes via API
 curl -X GET "http://localhost:8000/api/v1/mikrotik/logs?limit=5"
 
 # Testar criação de profile
@@ -285,9 +382,12 @@ curl -X POST "http://localhost:8000/api/v1/mikrotik/profiles" \
 
 - [ ] MikroTik com API habilitada na porta 8728
 - [ ] Credenciais de administrador corretas
+- [ ] Usuário com permissão de leitura (policy: read)
+- [ ] Logging habilitado no MikroTik (System → Logging)
 - [ ] Arquivo `.env` configurado
 - [ ] CRM Provedor iniciado
 - [ ] Teste de conexão realizado
+- [ ] Teste de coleta de logs realizado
 - [ ] Primeiro cliente sincronizado
 - [ ] Dashboard acessível
 - [ ] Logs sendo coletados
