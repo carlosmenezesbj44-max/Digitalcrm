@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE INTERNET</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo { max-width: 200px; margin-bottom: 20px; }
+        .section { margin-bottom: 30px; }
+        .signature { margin-top: 60px; border-top: 1px solid #000; width: 300px; text-align: center; padding-top: 10px; }
+        .date { text-align: right; margin-bottom: 40px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        {{empresa_logo}}
+        <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE INTERNET</h1>
+        <p>Contrato nº {{contrato_id}}</p>
+        <div class="date">Data: {{data_atual}}</div>
+    </div>
+
+    <div class="section">
+        <h2>Entre as partes:</h2>
+        <p><strong>Contratante (Cliente):</strong> {{cliente_nome}}, inscrito no CPF/CNPJ nº {{cliente_cpf}}, residente à {{cliente_endereco}}.</p>
+        <p><strong>Contratada (Provedora):</strong> {{empresa_nome}}, inscrita no CNPJ nº {{empresa_cnpj}}, com sede em {{empresa_endereco}}.</p>
+    </div>
+
+    <div class="section">
+        <h2>1. Objeto do Contrato</h2>
+        <p>A Contratada compromete-se a fornecer ao Contratante o serviço de acesso à internet banda larga, conforme plano contratado: {{contrato_titulo}}, com velocidade de {{contrato_velocidade}} Mbps.</p>
+    </div>
+
+    <div class="section">
+        <h2>2. Prazo</h2>
+        <p>Este contrato tem início em {{contrato_data_inicio}} e vigorará por prazo indeterminado, podendo ser rescindido por qualquer das partes mediante aviso prévio de {{contrato_prazo_aviso}} dias.</p>
+    </div>
+
+    <div class="section">
+        <h2>3. Valor e Forma de Pagamento</h2>
+        <p>O Contratante pagará à Contratada o valor mensal de R$ {{contrato_valor}}, com vencimento todo dia {{contrato_dia_vencimento}}.</p>
+        <p>O não pagamento poderá resultar na suspensão do serviço até a regularização.</p>
+    </div>
+
+    <div class="section">
+        <h2>4. Obrigações da Contratada</h2>
+        <p>A Contratada compromete-se a:</p>
+        <ul>
+            <li>Garantir a prestação do serviço conforme especificações técnicas.</li>
+            <li>Disponibilizar suporte técnico através dos canais de atendimento.</li>
+            <li>Manter a qualidade e estabilidade do serviço, salvo casos de força maior.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>5. Obrigações do Contratante</h2>
+        <p>O Contratante obriga-se a:</p>
+        <ul>
+            <li>Efetuar o pagamento nas datas acordadas.</li>
+            <li>Utilizar o serviço de forma legal e ética.</li>
+            <li>Permitir acesso técnico ao local de instalação quando necessário.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>6. Rescisão</h2>
+        <p>O contrato poderá ser rescindido:</p>
+        <ul>
+            <li>Por inadimplência superior a {{contrato_dias_inadimplencia}} dias.</li>
+            <li>Por descumprimento de cláusulas contratuais.</li>
+            <li>Por solicitação do cliente, mediante aviso prévio.</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>7. Foro</h2>
+        <p>Fica eleito o foro da comarca de {{contrato_cidade_foro}}, para dirimir quaisquer dúvidas oriundas deste contrato.</p>
+    </div>
+
+    <div class="section">
+        <p>Assinaturas:</p>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; margin-top: 80px;">
+        <div class="signature">
+            <p>{{cliente_nome}}</p>
+            <p>Contratante</p>
+        </div>
+        <div class="signature">
+            <p>{{empresa_nome}}</p>
+            <p>Contratada</p>
+        </div>
+    </div>
+
+</body>
+</html>

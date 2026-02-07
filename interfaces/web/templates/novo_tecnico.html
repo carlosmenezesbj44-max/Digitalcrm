@@ -1,0 +1,458 @@
+{% extends "layout.html" %}
+
+{% block title %}{% if tecnico %}Editar{% else %}Novo{% endif %} Técnico - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* CSS específico para formulário de técnico - Dark Mode Standardized */
+    .floating-tabs {
+        position: sticky;
+        top: 20px;
+        z-index: 1000;
+        background: rgba(13, 17, 23, 0.8);
+        backdrop-filter: blur(8px);
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .floating-tabs .nav-tabs {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+
+    .floating-tabs .nav-link {
+        border: none;
+        border-radius: 6px;
+        margin-right: 8px;
+        padding: 12px 20px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .floating-tabs .nav-link:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    .floating-tabs .nav-link.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .tab-content {
+        padding: 20px 0;
+    }
+
+    .tab-pane {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-progress {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding: 0 10px;
+    }
+
+    .progress-step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+
+    .progress-step::before {
+        content: '';
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        right: -50%;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        z-index: 1;
+    }
+
+    .progress-step:last-child::before {
+        display: none;
+    }
+
+    .progress-step.completed::before {
+        background: #28a745;
+    }
+
+    .progress-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.6);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        position: relative;
+        z-index: 2;
+        margin: 0 auto 8px;
+    }
+
+    .progress-step.completed .progress-dot {
+        background: #28a745;
+        color: white;
+    }
+
+    .progress-step.active .progress-dot {
+        background: #0d6efd;
+        color: white;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3);
+    }
+
+    .progress-label {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.7);
+        margin-top: 4px;
+    }
+
+    .progress-step.active .progress-label {
+        color: #fff;
+        font-weight: 500;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="text-white h3 mb-4">
+                <i class="bi bi-hammer me-2"></i>{% if tecnico %}Editar Técnico{% else %}Cadastrar Novo Técnico{% endif %}
+            </h1>
+
+            {% if error %}
+            <div class="alert alert-danger bg-danger bg-opacity-10 border-danger text-danger" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i> {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Progress Indicator -->
+            <div class="form-progress">
+                <div class="progress-step active" data-step="1">
+                    <div class="progress-dot">1</div>
+                    <div class="progress-label">Dados Pessoais</div>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="progress-dot">2</div>
+                    <div class="progress-label">Endereço</div>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="progress-dot">3</div>
+                    <div class="progress-label">Profissional</div>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="progress-dot">4</div>
+                    <div class="progress-label">Emprego</div>
+                </div>
+                <div class="progress-step" data-step="5">
+                    <div class="progress-dot">5</div>
+                    <div class="progress-label">Finalizar</div>
+                </div>
+            </div>
+
+            <!-- Floating Tabs -->
+            <div class="floating-tabs">
+                <ul class="nav nav-tabs" id="tecnicoTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="pessoal-tab" data-bs-toggle="tab" data-bs-target="#pessoal" type="button" role="tab">
+                            <i class="bi bi-person me-2"></i>Dados Pessoais
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="endereco-tab" data-bs-toggle="tab" data-bs-target="#endereco" type="button" role="tab">
+                            <i class="bi bi-geo-alt me-2"></i>Endereço
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="profissional-tab" data-bs-toggle="tab" data-bs-target="#profissional" type="button" role="tab">
+                            <i class="bi bi-briefcase me-2"></i>Profissional
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="emprego-tab" data-bs-toggle="tab" data-bs-target="#emprego" type="button" role="tab">
+                            <i class="bi bi-calendar-event me-2"></i>Emprego
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="finalizar-tab" data-bs-toggle="tab" data-bs-target="#finalizar" type="button" role="tab">
+                            <i class="bi bi-check-circle me-2"></i>Finalizar
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <form method="post" action="{% if tecnico %}/tecnicos/{{ tecnico.id }}/editar{% else %}/tecnicos{% endif %}">
+                <div class="tab-content" id="tecnicoTabContent">
+
+                    <!-- Aba Dados Pessoais -->
+                    <div class="tab-pane fade show active" id="pessoal" role="tabpanel">
+                        <div class="card bg-transparent border-secondary mb-4">
+                            <div class="modal-header border-secondary bg-dark text-white">
+                                <h6 class="mb-0"><i class="bi bi-person me-2"></i>Informações Básicas</h6>
+                            </div>
+                            <div class="card-body text-white">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="nome" class="form-label text-light">Nome Completo *</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="nome" name="nome" value="{{ tecnico.nome if tecnico else '' }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="email" class="form-label text-light">Email *</label>
+                                        <input type="email" class="form-control bg-transparent border-secondary text-white" id="email" name="email" value="{{ tecnico.email if tecnico else '' }}" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="telefone" class="form-label text-light">Telefone Principal *</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="telefone" name="telefone" placeholder="(11) 99999-9999" value="{{ tecnico.telefone if tecnico else '' }}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="telefone_secundario" class="form-label text-light">Telefone Secundário</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="telefone_secundario" name="telefone_secundario" placeholder="(11) 98888-8888" value="{{ tecnico.telefone_secundario if tecnico else '' }}">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="cpf" class="form-label text-light">CPF</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="cpf" name="cpf" placeholder="000.000.000-00" value="{{ tecnico.cpf if tecnico else '' }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="data_nascimento" class="form-label text-light">Data de Nascimento</label>
+                                        <input type="date" class="form-control bg-transparent border-secondary text-white" id="data_nascimento" name="data_nascimento" value="{% if tecnico and tecnico.data_nascimento %}{{ tecnico.data_nascimento.strftime('%Y-%m-%d') }}{% endif %}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-primary px-4" onclick="switchTab('endereco')">
+                                Avançar <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Endereço -->
+                    <div class="tab-pane fade" id="endereco" role="tabpanel">
+                        <div class="card bg-transparent border-secondary mb-4">
+                            <div class="modal-header border-secondary bg-dark text-white">
+                                <h6 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Endereço</h6>
+                            </div>
+                            <div class="card-body text-white">
+                                <div class="row">
+                                    <div class="col-md-8 mb-3">
+                                        <label for="endereco_rua" class="form-label text-light">Rua</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="endereco_rua" name="endereco_rua" value="{{ tecnico.endereco_rua if tecnico else '' }}">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="endereco_numero" class="form-label text-light">Número</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="endereco_numero" name="endereco_numero" value="{{ tecnico.endereco_numero if tecnico else '' }}">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="endereco_bairro" class="form-label text-light">Bairro</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="endereco_bairro" name="endereco_bairro" value="{{ tecnico.endereco_bairro if tecnico else '' }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="endereco_cidade" class="form-label text-light">Cidade</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="endereco_cidade" name="endereco_cidade" value="{{ tecnico.endereco_cidade if tecnico else '' }}">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="endereco_estado" class="form-label text-light">Estado</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="endereco_estado" placeholder="SP" value="{{ tecnico.endereco_estado if tecnico else '' }}" maxlength="2">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="endereco_cep" class="form-label text-light">CEP</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="endereco_cep" placeholder="00000-000" value="{{ tecnico.endereco_cep if tecnico else '' }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-4" onclick="switchTab('pessoal')">
+                                <i class="bi bi-arrow-left me-2"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary px-4" onclick="switchTab('profissional')">
+                                Avançar <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Profissional -->
+                    <div class="tab-pane fade" id="profissional" role="tabpanel">
+                        <div class="card bg-transparent border-secondary mb-4">
+                            <div class="modal-header border-secondary bg-dark text-white">
+                                <h6 class="mb-0"><i class="bi bi-briefcase me-2"></i>Informações Profissionais</h6>
+                            </div>
+                            <div class="card-body text-white">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="cargo" class="form-label text-light">Cargo</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="cargo" name="cargo" value="{{ tecnico.cargo if tecnico else '' }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="formacao" class="form-label text-light">Formação</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="formacao" name="formacao" value="{{ tecnico.formacao if tecnico else '' }}">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="experiencia_anos" class="form-label text-light">Anos de Experiência</label>
+                                        <input type="number" class="form-control bg-transparent border-secondary text-white" id="experiencia_anos" name="experiencia_anos" value="{{ tecnico.experiencia_anos if tecnico else '' }}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="crea" class="form-label text-light">CREA</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="crea" name="crea" value="{{ tecnico.crea if tecnico else '' }}">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="especialidades" class="form-label text-light">Especialidades</label>
+                                    <textarea class="form-control bg-transparent border-secondary text-white" id="especialidades" name="especialidades" rows="3" placeholder="Ex: Instalação de fibra, Reparos, Manutenção preventiva">{{ tecnico.especialidades if tecnico else '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-4" onclick="switchTab('endereco')">
+                                <i class="bi bi-arrow-left me-2"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary px-4" onclick="switchTab('emprego')">
+                                Avançar <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Emprego -->
+                    <div class="tab-pane fade" id="emprego" role="tabpanel">
+                        <div class="card bg-transparent border-secondary mb-4">
+                            <div class="modal-header border-secondary bg-dark text-white">
+                                <h6 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Informações de Emprego</h6>
+                            </div>
+                            <div class="card-body text-white">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="data_admissao" class="form-label text-light">Data de Admissão</label>
+                                        <input type="date" class="form-control bg-transparent border-secondary text-white" id="data_admissao" name="data_admissao" value="{% if tecnico and tecnico.data_admissao %}{{ tecnico.data_admissao.strftime('%Y-%m-%d') }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="data_demissao" class="form-label text-light">Data de Demissão</label>
+                                        <input type="date" class="form-control bg-transparent border-secondary text-white" id="data_demissao" name="data_demissao" value="{% if tecnico and tecnico.data_demissao %}{{ tecnico.data_demissao.strftime('%Y-%m-%d') }}{% endif %}">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="observacoes" class="form-label text-light">Observações</label>
+                                    <textarea class="form-control bg-transparent border-secondary text-white" id="observacoes" name="observacoes" rows="3">{{ tecnico.observacoes if tecnico else '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary px-4" onclick="switchTab('profissional')">
+                                <i class="bi bi-arrow-left me-2"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary px-4" onclick="switchTab('finalizar')">
+                                Avançar <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Finalizar -->
+                    <div class="tab-pane fade" id="finalizar" role="tabpanel">
+                        <div class="card bg-transparent border-secondary mb-4">
+                            <div class="modal-header border-secondary bg-dark text-white">
+                                <h6 class="mb-0"><i class="bi bi-check-circle me-2"></i>Revisar e Salvar</h6>
+                            </div>
+                            <div class="card-body text-white">
+                                <div class="alert alert-info bg-info bg-opacity-10 border-info text-info mb-4">
+                                    <i class="bi bi-info-circle me-2"></i>Revise as informações navegando pelas abas antes de salvar.
+                                </div>
+                                <div class="form-check mb-4">
+                                    <input class="form-check-input" type="checkbox" id="termos" required>
+                                    <label class="form-check-label text-secondary" for="termos">
+                                        Confirmo que as informações acima são verdadeiras.
+                                    </label>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-success btn-lg px-5">
+                                        <i class="bi bi-save me-2"></i>Salvar Cadastro
+                                    </button>
+                                    <a href="/tecnicos" class="btn btn-outline-secondary btn-lg px-4">Cancelar</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(tabId) {
+        const tabTrigger = document.querySelector(`#${tabId}-tab`);
+        if (tabTrigger) {
+            const tab = new bootstrap.Tab(tabTrigger);
+            tab.show();
+            updateProgress(tabId);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function updateProgress(tabId) {
+        const steps = {
+            'pessoal': 1,
+            'endereco': 2,
+            'profissional': 3,
+            'emprego': 4,
+            'finalizar': 5
+        };
+        
+        const currentStep = steps[tabId];
+        document.querySelectorAll('.progress-step').forEach(step => {
+            const stepNum = parseInt(step.dataset.step);
+            step.classList.remove('active', 'completed');
+            if (stepNum < currentStep) {
+                step.classList.add('completed');
+            } else if (stepNum === currentStep) {
+                step.classList.add('active');
+            }
+        });
+    }
+
+    // Listener para mudanças manuais nas abas
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabs = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabs.forEach(tab => {
+            tab.addEventListener('shown.bs.tab', function(event) {
+                const targetId = event.target.id.replace('-tab', '');
+                updateProgress(targetId);
+            });
+        });
+    });
+</script>
+{% endblock %}

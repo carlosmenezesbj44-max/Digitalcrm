@@ -1,0 +1,427 @@
+{% extends "layout.html" %}
+
+{% block title %}Controle de Acesso - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .access-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 2fr 1.4fr;
+        gap: 16px;
+    }
+
+    .access-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        height: 100%;
+    }
+
+    .access-card .card-header {
+        border-bottom: 1px solid var(--border-color);
+        background: transparent;
+        color: var(--text-main);
+        font-weight: 600;
+    }
+
+    .group-list {
+        max-height: 420px;
+        overflow-y: auto;
+    }
+
+    .group-item {
+        padding: 10px 12px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .group-item.active {
+        border-color: var(--primary-color);
+        background: rgba(0, 163, 255, 0.08);
+    }
+
+    .perm-grid {
+        display: grid;
+        grid-template-columns: 1.2fr repeat(5, 1fr);
+        gap: 8px;
+        align-items: center;
+    }
+
+    .perm-grid .perm-header {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        letter-spacing: 0.6px;
+    }
+
+    .perm-row {
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .perm-row:last-child {
+        border-bottom: none;
+    }
+
+    .perm-module {
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .helper-text {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    @media (max-width: 1200px) {
+        .access-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-shield-lock"></i> Controle de acesso</h1>
+            <p class="text-muted mb-0">Gerencie permissões por grupos e por usuários</p>
+        </div>
+        <button class="btn btn-outline-primary" id="btnInitPerms">
+            <i class="bi bi-lightning-charge"></i> Inicializar permissões
+        </button>
+    </div>
+
+    <div class="access-grid">
+        <div class="access-card">
+            <div class="card-header p-3">Grupos</div>
+            <div class="card-body p-3">
+                <div class="mb-3">
+                    <label class="form-label">Novo grupo</label>
+                    <input type="text" class="form-control mb-2" id="novoGrupoNome" placeholder="Ex: Comercial">
+                    <input type="text" class="form-control mb-2" id="novoGrupoDesc" placeholder="Descrição (opcional)">
+                    <button class="btn btn-primary w-100" id="btnCriarGrupo">Criar grupo</button>
+                </div>
+                <div class="group-list" id="groupList"></div>
+            </div>
+        </div>
+
+        <div class="access-card">
+            <div class="card-header p-3">Permissões do Grupo</div>
+            <div class="card-body p-3">
+                <div class="helper-text mb-2">Selecione um grupo para editar as permissões.</div>
+                <div id="groupPermissions"></div>
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-primary" id="btnSalvarGrupo" disabled>Salvar grupo</button>
+                    <button class="btn btn-outline-danger" id="btnExcluirGrupo" disabled>Excluir grupo</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="access-card">
+            <div class="card-header p-3">Permissões por Usuário</div>
+            <div class="card-body p-3">
+                <label class="form-label">Usuário</label>
+                <select class="form-select mb-3" id="usuarioSelect"></select>
+                <label class="form-label">Grupos do usuário</label>
+                <select class="form-select mb-3" id="usuarioGrupos" multiple></select>
+                <label class="form-label">Permissões diretas</label>
+                <div id="userPermissions"></div>
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-primary" id="btnSalvarUsuario" disabled>Salvar usuário</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const actions = [
+        { key: 'read', label: 'Ler' },
+        { key: 'create', label: 'Criar' },
+        { key: 'update', label: 'Atualizar' },
+        { key: 'delete', label: 'Excluir' },
+        { key: 'manage', label: 'Gerenciar' }
+    ];
+
+    const modules = [
+        { key: 'clientes', label: 'Clientes' },
+        { key: 'contratos', label: 'Contratos' },
+        { key: 'financeiro', label: 'Financeiro' },
+        { key: 'ordens', label: 'Ordens' },
+        { key: 'usuarios', label: 'Usuários' },
+        { key: 'planos', label: 'Planos' },
+        { key: 'produtos', label: 'Produtos' },
+        { key: 'tecnicos', label: 'Técnicos' },
+        { key: 'dashboard', label: 'Dashboard' }
+    ];
+
+    let permissoes = [];
+    let grupos = [];
+    let usuarios = [];
+    let selectedGroupId = null;
+
+    function showMessage(message, type = 'info') {
+        if (typeof showToast === 'function') {
+            showToast(message, type);
+        } else {
+            alert(message);
+        }
+    }
+
+    function buildPermissionsGrid(containerId, selectedIds = []) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        const header = document.createElement('div');
+        header.className = 'perm-grid perm-row';
+        header.innerHTML = `
+            <div class="perm-header">Módulo</div>
+            ${actions.map(a => `<div class="perm-header text-center">${a.label}</div>`).join('')}
+        `;
+        container.appendChild(header);
+
+        modules.forEach(mod => {
+            const row = document.createElement('div');
+            row.className = 'perm-grid perm-row';
+            row.innerHTML = `
+                <div class="perm-module">${mod.label}</div>
+                ${actions.map(action => {
+                    const perm = permissoes.find(p =>
+                        p.modulo === mod.key &&
+                        (p.nome === action.key || p.nome === `${action.key}_${mod.key}`)
+                    );
+                    const checked = perm && selectedIds.includes(perm.id) ? 'checked' : '';
+                    const value = perm ? perm.id : '';
+                    return `<div class="text-center">
+                        <input class="form-check-input" type="checkbox" data-perm="${value}" ${checked} ${value ? '' : 'disabled'}>
+                    </div>`;
+                }).join('')}
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    function collectChecked(containerId) {
+        const container = document.getElementById(containerId);
+        return [...container.querySelectorAll('input[data-perm]:checked')]
+            .map(input => Number(input.dataset.perm))
+            .filter(Boolean);
+    }
+
+    async function loadPermissoes() {
+        const response = await fetch('/api/usuarios/permissoes');
+        if (!response.ok) {
+            showMessage('Erro ao carregar permissões.', 'error');
+            return;
+        }
+        permissoes = await response.json();
+        if (!permissoes.length) {
+            await initPermissoes();
+        }
+    }
+
+    async function initPermissoes() {
+        for (const mod of modules) {
+            for (const action of actions) {
+                await fetch('/api/usuarios/permissoes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome: `${action.key}_${mod.key}`, modulo: mod.key, descricao: `${action.label} ${mod.label}` })
+                });
+            }
+        }
+        await loadPermissoes();
+        renderPermissions();
+        showMessage('Permissões inicializadas.', 'success');
+    }
+
+    async function loadGrupos() {
+        const response = await fetch('/api/usuarios/grupos');
+        if (!response.ok) return;
+        grupos = await response.json();
+    }
+
+    async function loadUsuarios() {
+        const response = await fetch('/api/usuarios/lista');
+        if (!response.ok) return;
+        usuarios = await response.json();
+    }
+
+    function renderGroups() {
+        const list = document.getElementById('groupList');
+        list.innerHTML = '';
+        grupos.forEach(grupo => {
+            const item = document.createElement('div');
+            item.className = `group-item ${selectedGroupId === grupo.id ? 'active' : ''}`;
+            item.innerHTML = `<div class="fw-bold">${grupo.nome}</div><div class="helper-text">${grupo.descricao || '-'}</div>`;
+            item.addEventListener('click', () => selectGroup(grupo.id));
+            list.appendChild(item);
+        });
+    }
+
+    function renderPermissions() {
+        const group = grupos.find(g => g.id === selectedGroupId);
+        const groupPerms = group ? group.permissoes.map(p => p.id) : [];
+        buildPermissionsGrid('groupPermissions', groupPerms);
+    }
+
+    async function selectGroup(id) {
+        selectedGroupId = id;
+        document.getElementById('btnSalvarGrupo').disabled = false;
+        document.getElementById('btnExcluirGrupo').disabled = false;
+        await loadGrupos();
+        renderGroups();
+        renderPermissions();
+    }
+
+    function renderUsuarios() {
+        const select = document.getElementById('usuarioSelect');
+        select.innerHTML = '<option value="">Selecione...</option>';
+        usuarios.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.nome_completo} (${user.username})`;
+            select.appendChild(option);
+        });
+    }
+
+    async function loadUsuarioDetalhes(userId) {
+        const response = await fetch(`/api/usuarios/${userId}`);
+        if (!response.ok) return null;
+        return response.json();
+    }
+
+    function renderUsuarioGrupos(user) {
+        const select = document.getElementById('usuarioGrupos');
+        select.innerHTML = '';
+        grupos.forEach(grupo => {
+            const option = document.createElement('option');
+            option.value = grupo.id;
+            option.textContent = grupo.nome;
+            option.selected = (user.grupos || []).some(g => g.id === grupo.id);
+            select.appendChild(option);
+        });
+    }
+
+    function renderUsuarioPerms(user) {
+        const perms = (user.permissoes || []).map(p => p.id);
+        buildPermissionsGrid('userPermissions', perms);
+    }
+
+    document.getElementById('btnCriarGrupo').addEventListener('click', async () => {
+        const nome = document.getElementById('novoGrupoNome').value.trim();
+        const descricao = document.getElementById('novoGrupoDesc').value.trim();
+        if (!nome) return;
+        const response = await fetch('/api/usuarios/grupos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, descricao, permissoes_ids: [] })
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showMessage(data.detail || 'Erro ao criar grupo.', 'error');
+            return;
+        }
+        document.getElementById('novoGrupoNome').value = '';
+        document.getElementById('novoGrupoDesc').value = '';
+        await loadGrupos();
+        renderGroups();
+        showMessage('Grupo criado.', 'success');
+    });
+
+    document.getElementById('btnSalvarGrupo').addEventListener('click', async () => {
+        if (!selectedGroupId) return;
+        const permissoesIds = collectChecked('groupPermissions');
+        const response = await fetch(`/api/usuarios/grupos/${selectedGroupId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ permissoes_ids: permissoesIds })
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showMessage(data.detail || 'Erro ao salvar grupo.', 'error');
+            return;
+        }
+        await loadGrupos();
+        renderGroups();
+        renderPermissions();
+        showMessage('Permissões do grupo atualizadas.', 'success');
+    });
+
+    document.getElementById('btnExcluirGrupo').addEventListener('click', async () => {
+        if (!selectedGroupId) return;
+        if (!confirm('Tem certeza que deseja excluir este grupo?')) return;
+        const response = await fetch(`/api/usuarios/grupos/${selectedGroupId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showMessage(data.detail || 'Erro ao excluir grupo.', 'error');
+            return;
+        }
+        selectedGroupId = null;
+        document.getElementById('btnSalvarGrupo').disabled = true;
+        document.getElementById('btnExcluirGrupo').disabled = true;
+        await loadGrupos();
+        renderGroups();
+        renderPermissions();
+        showMessage('Grupo excluído.', 'success');
+    });
+
+    document.getElementById('usuarioSelect').addEventListener('change', async (event) => {
+        const userId = event.target.value;
+        const btn = document.getElementById('btnSalvarUsuario');
+        if (!userId) {
+            btn.disabled = true;
+            return;
+        }
+        const user = await loadUsuarioDetalhes(userId);
+        if (!user) return;
+        renderUsuarioGrupos(user);
+        renderUsuarioPerms(user);
+        btn.disabled = false;
+    });
+
+    document.getElementById('btnSalvarUsuario').addEventListener('click', async () => {
+        const userId = document.getElementById('usuarioSelect').value;
+        if (!userId) return;
+        const gruposIds = [...document.getElementById('usuarioGrupos').selectedOptions].map(opt => Number(opt.value));
+        const permissoesIds = collectChecked('userPermissions');
+
+        const respGrupos = await fetch(`/api/usuarios/${userId}/grupos`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ grupos_ids: gruposIds })
+        });
+
+        const respPerms = await fetch(`/api/usuarios/${userId}/permissoes`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ permissoes_ids: permissoesIds })
+        });
+
+        if (!respGrupos.ok || !respPerms.ok) {
+            showMessage('Erro ao salvar usuário.', 'error');
+            return;
+        }
+
+        showMessage('Permissões do usuário atualizadas.', 'success');
+    });
+
+    document.getElementById('btnInitPerms').addEventListener('click', initPermissoes);
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadPermissoes();
+        await loadGrupos();
+        await loadUsuarios();
+        renderGroups();
+        renderPermissions();
+        renderUsuarios();
+    });
+</script>
+{% endblock %}

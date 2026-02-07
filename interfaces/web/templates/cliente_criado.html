@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+
+{% block title %}Cliente Criado - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-transparent border-success border-opacity-25 shadow-lg">
+                <div class="card-body p-5 text-center">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    
+                    <h2 class="text-white mb-3">Cliente Cadastrado com Sucesso!</h2>
+                    <p class="text-light mb-5">Os dados do cliente foram salvos e processados no sistema.</p>
+
+                    <div class="bg-dark bg-opacity-25 p-4 rounded border border-secondary border-opacity-25 text-start mb-5">
+                        <h5 class="text-light small text-uppercase mb-3 border-bottom border-secondary border-opacity-25 pb-2">Resumo do Cadastro</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="text-light small d-block">Nome Completo</label>
+                                <span class="text-white fw-bold">{{ cliente.nome }}</span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-light small d-block">CPF / CNPJ</label>
+                                <span class="text-white fw-bold">{{ cliente.cpf }}</span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-light small d-block">E-mail</label>
+                                <span class="text-white">{{ cliente.email }}</span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-light small d-block">Telefone</label>
+                                <span class="text-white">{{ cliente.telefone }}</span>
+                            </div>
+                            <div class="col-12">
+                                <label class="text-light small d-block">Endereço</label>
+                                <span class="text-white">{{ cliente.endereco }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-column flex-md-row justify-content-center gap-3">
+                        <a href="/clientes/novo" class="btn btn-primary px-4 py-2">
+                            <i class="bi bi-person-plus me-2"></i>Novo Cadastro
+                        </a>
+                        <a href="/clientes" class="btn btn-outline-secondary px-4 py-2">
+                            <i class="bi bi-people me-2"></i>Listar Clientes
+                        </a>
+                        <a href="/dashboard" class="btn btn-link text-light text-decoration-none">
+                            Ir para Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

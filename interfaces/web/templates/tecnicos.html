@@ -1,0 +1,136 @@
+{% extends "layout.html" %}
+
+{% block title %}Técnicos - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tech-card {
+        border-left: 4px solid var(--primary-color);
+        transition: box-shadow 0.3s;
+    }
+    
+    .tech-card:hover {
+        box-shadow: var(--box-shadow);
+    }
+    
+    .tech-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 24px;
+    }
+    
+    .badge-ativo { background-color: var(--success-color); }
+    .badge-inativo { background-color: var(--danger-color); }
+    .badge-pendente { background-color: var(--warning-color); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-people"></i> Técnicos</h1>
+            <p class="text-muted mb-0">Gerencie sua equipe técnica</p>
+        </div>
+        <a href="/tecnicos/novo" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Novo Técnico
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    {% if tecnicos %}
+        <div class="row">
+            {% for tecnico in tecnicos %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card tech-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start">
+                            <div class="tech-avatar me-3">
+                                {{ tecnico.nome[0].upper() if tecnico.nome else '?' }}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1">{{ tecnico.nome }}</h5>
+                                <p class="text-muted mb-2">{{ tecnico.cargo or 'Sem cargo' }}</p>
+                                <span class="badge {% if tecnico.status == 'ativo' %}badge-ativo{% elif tecnico.status == 'inativo' %}badge-inativo{% else %}badge-pendente{% endif %}">
+                                    {{ tecnico.status|title if tecnico.status else 'Pendente' }}
+                                </span>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <small class="text-muted d-block">Email</small>
+                                <span class="d-block text-truncate">{{ tecnico.email }}</span>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted d-block">Telefone</small>
+                                <span>{{ tecnico.telefone }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group w-100" role="group">
+                            <a href="/tecnicos/{{ tecnico.id }}/editar" class="btn btn-outline-warning btn-sm">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <button class="btn btn-outline-danger btn-sm" onclick="excluirTecnico({{ tecnico.id }})">
+                                <i class="bi bi-trash"></i> Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-people display-4 text-muted mb-3"></i>
+            <h5 class="text-muted">Nenhum técnico cadastrado</h5>
+            <p class="text-muted">Clique em "Novo Técnico" para começar.</p>
+            <a href="/tecnicos/novo" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Novo Técnico
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function excluirTecnico(id) {
+        if (confirm('Tem certeza que deseja excluir este técnico?')) {
+            showLoading('Excluindo técnico...');
+            
+            fetch(`/tecnicos/${id}/excluir`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Técnico excluído com sucesso!', 'success');
+                    location.reload();
+                } else {
+                    showToast(data.message || 'Erro ao excluir técnico', 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Erro ao excluir técnico.', 'error');
+            })
+            .finally(() => hideLoading());
+        }
+    }
+</script>
+{% endblock %}

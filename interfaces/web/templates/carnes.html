@@ -1,0 +1,575 @@
+{% extends "layout.html" %}
+
+{% block title %}Carnês - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s;
+    }
+    .info-card:hover {
+        transform: translateY(-5px);
+    }
+    .info-card h5 { 
+        margin-bottom: 10px; 
+        font-weight: bold; 
+        color: var(--primary-color);
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .info-card .value { 
+        font-size: 28px; 
+        font-weight: 800; 
+        color: var(--text-main);
+    }
+    .parcela-card {
+        border-left: 4px solid var(--primary-color);
+        padding: 15px;
+        margin-bottom: 10px;
+        background-color: var(--card-bg);
+        border-radius: 8px;
+        border-top: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        transition: all 0.2s;
+    }
+    .parcela-card:hover {
+        background-color: var(--hover-bg);
+    }
+    .parcela-paga { border-left-color: var(--success-color); }
+    .parcela-pendente { border-left-color: var(--warning-color); }
+    .parcela-atrasada { border-left-color: var(--danger-color); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0" style="color: var(--text-main); font-weight: 700;"><i class="bi bi-calendar-check"></i> Carnês</h1>
+            <p style="color: var(--text-secondary); opacity: 0.8;" class="mb-0">Gerencie carnês de pagamento</p>
+        </div>
+        <button class="btn btn-primary border-0 shadow-sm px-4" data-bs-toggle="modal" data-bs-target="#modalNovoCarne">
+            <i class="bi bi-plus-circle"></i> Novo Carnê
+        </button>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="info-card border-0 shadow-sm">
+                <h5 style="color: var(--primary-color);"><i class="bi bi-cash-coin"></i> Total Carnês</h5>
+                <div class="value"><span id="totalCarnes">0</span></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card border-0 shadow-sm">
+                <h5 style="color: var(--primary-color);"><i class="bi bi-hourglass-split"></i> Parcelas em Aberto</h5>
+                <div class="value"><span id="parcelasAberto">0</span></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card border-0 shadow-sm">
+                <h5 style="color: var(--primary-color);"><i class="bi bi-check-circle"></i> Parcelas Pagas</h5>
+                <div class="value"><span id="parcelasPagas">0</span></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card border-0 shadow-sm">
+                <h5 style="color: var(--primary-color);"><i class="bi bi-exclamation-triangle"></i> Vencidos</h5>
+                <div class="value"><span id="parcelasVencidas">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold" style="color: var(--text-main);">Cliente</label>
+                    <select class="form-select border-secondary" id="filtroCliente" onchange="filtrarCarnes()">
+                        <option value="">Todos os Clientes</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold" style="color: var(--text-main);">Status</label>
+                    <select class="form-select border-secondary" id="filtroStatus" onchange="filtrarCarnes()">
+                        <option value="">Todos os Status</option>
+                        <option value="ativo">Ativo</option>
+                        <option value="quitado">Quitado</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-outline-secondary w-100" onclick="carregarCarnes()">
+                        <i class="bi bi-arrow-repeat"></i> Atualizar Lista
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="listaCarnes">
+        <div class="col-12 text-center py-5" style="color: var(--text-secondary);">
+            <i class="bi bi-calendar-check display-4 mb-3"></i>
+            <br>Carregando carnês...
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalNovoCarne">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow" style="background: var(--card-bg); color: var(--text-main);">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-plus-circle"></i> Novo Carnê</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <form id="formNovoCarne">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="color: var(--text-main);">Cliente <span class="text-danger">*</span></label>
+                        <select class="form-select border-secondary" id="carneCliente" required>
+                            <option value="">Selecione o cliente...</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold" style="color: var(--text-main);">Valor Parcela <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text border-secondary bg-transparent" style="color: var(--text-secondary);">R$</span>
+                                    <input type="number" class="form-control border-secondary" id="carneValorUnitario" step="0.01" required oninput="calcularTotalCarne()">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold" style="color: var(--text-main);">Nº Parcelas <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control border-secondary" id="carneParcelas" min="1" max="360" value="12" required oninput="calcularTotalCarne()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold" style="color: var(--text-main);">Valor Total</label>
+                                <div class="input-group">
+                                    <span class="input-group-text border-secondary bg-transparent" style="color: var(--text-secondary);">R$</span>
+                                    <input type="number" class="form-control border-secondary bg-light" id="carneValor" step="0.01" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="color: var(--text-main);">Data Primeira Parcela <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control border-secondary" id="carneDataInicio" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold" style="color: var(--text-main);">Descrição</label>
+                        <input type="text" class="form-control border-secondary" id="carneDescricao" placeholder="Ex: Parcelamento">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="criarNovoCarne()">
+                    <i class="bi bi-plus-circle"></i> Gerar Carnê
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalParcelas">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow" style="background: var(--card-bg); color: var(--text-main);">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-calendar-check"></i> Parcelas do Carnê</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4" id="conteudoParcelas">
+                <div class="text-center py-4" style="color: var(--text-secondary);">
+                    <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
+                    <p class="mb-0">Carregando parcelas...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let carnes = [];
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        const hoje = new Date();
+        const primeiro = new Date(hoje.setMonth(hoje.getMonth() + 1));
+        document.getElementById('carneDataInicio').value = primeiro.toISOString().split('T')[0];
+        await carregarClientes();
+        await carregarCarnes();
+
+        // Listener para buscar dados do plano ao selecionar o cliente
+        document.getElementById('carneCliente').addEventListener('change', async function() {
+            const clienteId = this.value;
+            if (!clienteId) return;
+
+            console.log('Cliente selecionado ID:', clienteId);
+            
+            // Busca o cliente no cache local carregado no início
+            const cliente = window.clientesData?.find(c => c.id == clienteId);
+            
+            if (cliente) {
+                console.log('Dados do cliente encontrados no cache:', cliente);
+                // Prioriza valor_mensal, garantindo que não seja nulo
+                const valorBase = Number(cliente.valor_mensal) || 0;
+                console.log('Definindo valor unitário para:', valorBase);
+                
+                const valorInput = document.getElementById('carneValorUnitario');
+                if (valorInput) {
+                    valorInput.value = valorBase;
+                    // Forçar o trigger do evento input para atualizar o total
+                    valorInput.dispatchEvent(new Event('input'));
+                }
+                
+                if (cliente.dia_vencimento) {
+                    const dataInicioInput = document.getElementById('carneDataInicio');
+                    if (dataInicioInput) {
+                        const dataAtual = dataInicioInput.value ? new Date(dataInicioInput.value) : new Date();
+                        const ano = dataAtual.getFullYear();
+                        const mes = String(dataAtual.getMonth() + 1).padStart(2, '0');
+                        const dia = String(cliente.dia_vencimento).padStart(2, '0');
+                        dataInicioInput.value = `${ano}-${mes}-${dia}`;
+                    }
+                }
+            } else {
+                console.warn('Cliente não encontrado no cache local. Lista de clientes:', window.clientesData);
+            }
+        });
+    });
+
+    function calcularTotalCarne() {
+        const valorUnitario = parseFloat(document.getElementById('carneValorUnitario').value) || 0;
+        const numParcelas = parseInt(document.getElementById('carneParcelas').value) || 0;
+        const total = valorUnitario * numParcelas;
+        document.getElementById('carneValor').value = total.toFixed(2);
+    }
+
+    async function carregarClientes() {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/v1/clientes/?page=1&per_page=1000', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const clientes = Array.isArray(data) ? data : (data.clientes || []);
+                window.clientesData = clientes;
+                console.log('Clientes carregados no cache:', window.clientesData);
+                const select = document.getElementById('carneCliente');
+                select.innerHTML = '<option value="">Selecione...</option>';
+                clientes.forEach(c => {
+                    select.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao carregar clientes:', error);
+        }
+    }
+
+    async function carregarCarnes() {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/faturamento/carnes', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                carnes = Array.isArray(data) ? data : [];
+                renderizarCarnes(carnes);
+                atualizarEstatisticas(carnes);
+            } else {
+                document.getElementById('listaCarnes').innerHTML = 
+                    '<div class="col-12 text-center text-muted py-5">Nenhum carnê encontrado</div>';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar carnês:', error);
+        }
+    }
+
+    function renderizarCarnes(carnesFiltrados) {
+        const container = document.getElementById('listaCarnes');
+        container.innerHTML = '';
+
+        if (carnesFiltrados.length === 0) {
+            container.innerHTML = '<div class="col-12 text-center text-muted py-5">Nenhum carnê encontrado</div>';
+            return;
+        }
+
+        const statusBadge = { 
+            ativo: 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25', 
+            quitado: 'bg-success bg-opacity-10 text-success border border-success border-opacity-25', 
+            cancelado: 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25', 
+            inativo: 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25' 
+        };
+
+        carnesFiltrados.forEach(carne => {
+            const cliente = window.clientesData?.find(c => c.id == carne.cliente_id);
+            const parcelasPagos = (carne.parcelas || []).filter(p => p.status === 'pago').length;
+            const totalParcelas = carne.quantidade_parcelas || 0;
+            
+            const card = `
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 border-0 shadow-sm" style="background: var(--card-bg);">
+                        <div class="modal-header border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                            <span class="fw-bold" style="color: var(--text-main);"><i class="bi bi-calendar-check text-primary"></i> Carnê #${carne.id}</span>
+                            <span class="badge ${statusBadge[carne.status] || 'bg-secondary'}" style="font-weight: 500;">${carne.status}</span>
+                        </div>
+                        <div class="card-body px-4">
+                            <div class="mb-2">
+                                <small style="color: var(--text-secondary); opacity: 0.7;" class="d-block">Cliente</small>
+                                <span class="fw-bold" style="color: var(--text-main);">${carne.cliente_nome || cliente?.nome || 'N/A'}</span>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <small style="color: var(--text-secondary); opacity: 0.7;" class="d-block">Parcelas</small>
+                                    <span class="fw-bold" style="color: var(--text-main);">${totalParcelas}</span>
+                                </div>
+                                <div class="col-6">
+                                    <small style="color: var(--text-secondary); opacity: 0.7;" class="d-block">Valor Parcela</small>
+                                    <span class="fw-bold" style="color: var(--text-main);">R$ ${(carne.valor_parcela || 0).toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <small style="color: var(--text-secondary); opacity: 0.7;" class="d-block">Total</small>
+                                    <span class="fw-bold text-primary">R$ ${(carne.valor_total || 0).toFixed(2)}</span>
+                                </div>
+                                <div class="col-6">
+                                    <small style="color: var(--text-secondary); opacity: 0.7;" class="d-block">Progresso</small>
+                                    <span class="fw-bold" style="color: var(--text-main);">${parcelasPagos}/${totalParcelas} pagas</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer border-top-0 px-4 pb-4 bg-transparent d-flex gap-2 flex-wrap">
+                            <button class="btn btn-outline-secondary btn-sm flex-grow-1" onclick="verParcelas(${carne.id})">
+                                <i class="bi bi-eye"></i> Parcelas
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm flex-grow-1" onclick="imprimirCarne(${carne.id})">
+                                <i class="bi bi-printer"></i> Imprimir
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="confirmarExclusaoCarne(${carne.id})" title="Excluir Carnê">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.innerHTML += card;
+        });
+    }
+
+    function atualizarEstatisticas(carnesList) {
+        const totalCarnes = carnesList.length;
+        let totalParcelas = 0, parcelasPagas = 0, parcelasVencidas = 0;
+
+        carnesList.forEach(c => {
+            const qtde = c.quantidade_parcelas || 0;
+            totalParcelas += qtde;
+            parcelasPagas += (c.parcelas || []).filter(p => p.status === 'pago').length;
+            
+            // Simples verificação de vencidas se tiver a data
+            const hoje = new Date();
+            parcelasVencidas += (c.parcelas || []).filter(p => {
+                if (p.status !== 'pendente') return false;
+                const venc = new Date(p.data_vencimento);
+                return venc < hoje;
+            }).length;
+        });
+
+        document.getElementById('totalCarnes').textContent = totalCarnes;
+        document.getElementById('parcelasAberto').textContent = totalParcelas - parcelasPagas;
+        document.getElementById('parcelasPagas').textContent = parcelasPagas;
+        document.getElementById('parcelasVencidas').textContent = parcelasVencidas;
+    }
+
+    function filtrarCarnes() {
+        const clienteId = document.getElementById('filtroCliente').value;
+        const status = document.getElementById('filtroStatus').value;
+
+        let filtrados = carnes;
+        if (clienteId) filtrados = filtrados.filter(c => c.cliente_id == clienteId);
+        if (status) filtrados = filtrados.filter(c => c.status === status);
+
+        renderizarCarnes(filtrados);
+    }
+
+    async function criarNovoCarne() {
+        const clienteId = document.getElementById('carneCliente').value;
+        const valorTotal = parseFloat(document.getElementById('carneValor').value);
+        const numParcelas = parseInt(document.getElementById('carneParcelas').value);
+        const dataInicioVenc = document.getElementById('carneDataInicio').value;
+        const descricao = document.getElementById('carneDescricao').value;
+
+        if (!clienteId || isNaN(valorTotal) || isNaN(numParcelas) || !dataInicioVenc) {
+            showToast('Preencha todos os campos obrigatórios', 'warning');
+            return;
+        }
+
+        showLoading('Criando carnê...');
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/faturamento/carnes', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`, 
+                    'Content-Type': 'application/json' 
+                },
+                body: JSON.stringify({
+                    cliente_id: parseInt(clienteId),
+                    valor_total: valorTotal,
+                    quantidade_parcelas: numParcelas,
+                    data_inicio: new Date().toISOString().split('T')[0], // Data de hoje como início do contrato
+                    data_primeiro_vencimento: dataInicioVenc,
+                    descricao: descricao,
+                    gerar_boletos: true // Ativado por padrão para facilitar
+                })
+            });
+            
+            const data = await response.json();
+            if (response.ok) {
+                showToast('Carnê criado com sucesso!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('modalNovoCarne')).hide();
+                await carregarCarnes();
+            } else {
+                showToast(data.detail || data.message || 'Erro ao criar carnê', 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            showToast('Erro de rede ao criar carnê', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    function verParcelas(carneId) {
+        const carne = carnes.find(c => c.id === carneId);
+        if (!carne) return;
+
+        let html = '<div class="list-group list-group-flush">';
+        const parcelas = carne.parcelas || [];
+        
+        if (parcelas.length > 0) {
+            parcelas.forEach(p => {
+                const statusClass = p.status === 'pago' ? 'parcela-paga' : 
+                                  (new Date(p.data_vencimento) < new Date() && p.status === 'pendente' ? 'parcela-atrasada' : 'parcela-pendente');
+                
+                const badgeClass = p.status === 'pago' ? 'bg-success bg-opacity-10 text-success border border-success border-opacity-25' : 
+                                 (statusClass === 'parcela-atrasada' ? 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25' : 
+                                  'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25');
+                
+                const statusLabel = p.status.charAt(0).toUpperCase() + p.status.slice(1);
+                const dataVenc = new Date(p.data_vencimento).toLocaleDateString('pt-BR');
+                
+                html += `
+                    <div class="parcela-card ${statusClass} d-flex justify-content-between align-items-center" style="background: var(--card-bg); border-color: var(--border-color);">
+                        <div>
+                            <span class="fw-bold d-block" style="color: var(--text-main);">Parcela ${p.numero_parcela}</span>
+                            <small style="color: var(--text-secondary); opacity: 0.7;">Vencimento: ${dataVenc} | Valor: R$ ${p.valor.toFixed(2)}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge ${badgeClass} mb-1" style="font-weight: 500;">${statusLabel}</span>
+                            ${p.status === 'pendente' ? `
+                                <button class="btn btn-sm btn-outline-success d-block w-100" onclick="registrarPagamento(${p.id})">
+                                    <i class="bi bi-check2"></i> Pagar
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        } else {
+            // Fallback se não houver parcelas carregadas (não deveria acontecer com o novo schema)
+            const totalParcelas = carne.quantidade_parcelas || 0;
+            for (let i = 1; i <= totalParcelas; i++) {
+                html += `
+                    <div class="parcela-card parcela-pendente d-flex justify-content-between align-items-center" style="background: var(--card-bg); border-color: var(--border-color);">
+                        <div>
+                            <span class="fw-bold d-block" style="color: var(--text-main);">Parcela ${i}</span>
+                            <small style="color: var(--text-secondary); opacity: 0.7;">Valor: R$ ${(carne.valor_parcela || 0).toFixed(2)}</small>
+                        </div>
+                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" style="font-weight: 500;">Pendente</span>
+                    </div>
+                `;
+            }
+        }
+        html += '</div>';
+        document.getElementById('conteudoParcelas').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('modalParcelas')).show();
+    }
+
+    async function registrarPagamento(parcelaId) {
+        if (!confirm('Deseja registrar o pagamento desta parcela?')) return;
+        
+        showLoading('Registrando pagamento...');
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`/api/faturamento/parcelas/${parcelaId}/pagar`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (response.ok) {
+                showToast('Pagamento registrado com sucesso!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('modalParcelas')).hide();
+                await carregarCarnes();
+            } else {
+                const data = await response.json();
+                showToast(data.detail || 'Erro ao registrar pagamento', 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            showToast('Erro de rede', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    function imprimirCarne(carneId) {
+        showToast('Redirecionando para impressão...', 'info');
+        window.open(`/carnes/${carneId}/imprimir`, '_blank');
+    }
+
+    async function confirmarExclusaoCarne(carneId) {
+        if (!confirm('Tem certeza que deseja excluir este carnê? Esta ação não pode ser desfeita e cancelará todos os boletos vinculados.')) {
+            return;
+        }
+
+        showLoading('Excluindo carnê...');
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch(`/api/faturamento/carnes/${carneId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                showToast('Carnê excluído com sucesso!', 'success');
+                await carregarCarnes();
+            } else {
+                const data = await response.json();
+                showToast(data.detail || 'Erro ao excluir carnê', 'error');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            showToast('Erro de rede ao excluir carnê', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+</script>
+{% endblock %}

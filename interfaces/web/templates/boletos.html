@@ -1,0 +1,473 @@
+{% extends "layout.html" %}
+
+{% block title %}Boletos - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .info-card {
+        background: var(--card-bg);
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        color: var(--text-main);
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+    .info-card h5 { 
+        margin-bottom: 10px; 
+        font-weight: 500;
+        color: var(--light-color);
+        font-size: 0.9rem;
+    }
+    .info-card .value { 
+        font-size: 24px; 
+        font-weight: 700;
+        color: var(--text-main);
+    }
+    .boleto-card {
+        background: var(--card-bg);
+        border: 0;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        transition: box-shadow 0.3s;
+    }
+    .boleto-card:hover { 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2); 
+    }
+    .boleto-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 10px;
+    }
+    .codigo-barras {
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--text-main);
+        padding: 12px;
+        border-radius: 6px;
+        word-break: break-all;
+        font-size: 13px;
+        margin-top: 10px;
+        border: 1px dashed var(--border-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-file-earmark"></i> Boletos</h1>
+            <p class="text-muted mb-0">Gerenciar boletos de cobrança</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoBoleto">
+            <i class="bi bi-plus-circle"></i> Novo Boleto
+        </button>
+    </div>
+
+    <!-- Resumo -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="info-card">
+                <h5><i class="bi bi-graph-up"></i> Total em Boletos</h5>
+                <div class="value">R$ <span id="totalBoletos">0,00</span></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card">
+                <h5><i class="bi bi-hourglass-split"></i> Pendentes</h5>
+                <div class="value"><span id="boletosPendentes">0</span></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card">
+                <h5><i class="bi bi-check-circle"></i> Pagos</h5>
+                <div class="value"><span id="boletosPagos">0</span></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="info-card">
+                <h5><i class="bi bi-exclamation-triangle"></i> Vencidos</h5>
+                <div class="value"><span id="boletosVencidos">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg); color: var(--text-main);">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-light">Cliente</label>
+                    <select class="form-select bg-transparent border-secondary text-white" id="filtroCliente" onchange="filtrarBoletos()">
+                        <option value="" class="bg-dark">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-light">Status</label>
+                    <select class="form-select bg-transparent border-secondary text-white" id="filtroStatus" onchange="filtrarBoletos()">
+                        <option value="" class="bg-dark">Todos</option>
+                        <option value="pendente" class="bg-dark">Pendente</option>
+                        <option value="pago" class="bg-dark">Pago</option>
+                        <option value="cancelado" class="bg-dark">Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="input-group">
+                        <button class="btn btn-outline-secondary border-secondary text-white" onclick="carregarBoletos()">
+                            <i class="bi bi-arrow-repeat"></i> Atualizar
+                        </button>
+                        <button class="btn btn-outline-primary border-primary text-white" onclick="sincronizarComGerencianet()" title="Sincronizar">
+                            <i class="bi bi-cloud-check"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card border-0 shadow-sm" style="background: var(--card-bg); color: var(--text-main);">
+        <div class="modal-header border-bottom-0 pt-4 px-4">
+            <h6 class="mb-0 fw-bold" style="color: var(--text-main);"><i class="bi bi-table"></i> Boletos Registrados</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" style="color: var(--text-main);">
+                    <thead>
+                        <tr class="text-light" style="border-color: var(--border-color);">
+                            <th>Número</th>
+                            <th>Cliente</th>
+                            <th>Valor</th>
+                            <th>Vencimento</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaBoletos" style="border-color: var(--border-color);">
+                        <tr><td colspan="6" class="text-center py-4 text-light">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Novo Boleto -->
+<div class="modal fade" id="modalNovoBoleto">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="background: var(--card-bg); color: var(--text-main);">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-plus-circle"></i> Novo Boleto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <form id="formNovoBoleto">
+                    <ul class="nav nav-tabs mb-4" id="modalTabs" role="tablist" style="gap: 10px; border-bottom: 1px solid var(--border-color);">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active border-0 text-white" data-bs-toggle="tab" data-bs-target="#tabFormDireto" role="tab" style="border-radius: 6px; padding: 10px 20px; font-weight: 500; transition: all 0.3s ease; background: rgba(0, 163, 255, 0.1);">
+                                <i class="bi bi-file-earmark-plus"></i> Boleto Direto
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link border-0 text-white" data-bs-toggle="tab" data-bs-target="#tabFormFatura" role="tab" style="border-radius: 6px; padding: 10px 20px; font-weight: 500; transition: all 0.3s ease; background: transparent;">
+                                <i class="bi bi-receipt"></i> De Fatura
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="tabFormDireto">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label text-light"><strong>Cliente</strong> *</label>
+                                    <select class="form-select bg-transparent border-secondary text-white" id="boletoDiretoCliente" required>
+                                        <option value="" class="bg-dark">Selecione...</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-light"><strong>Valor</strong> *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent border-secondary text-white">R$</span>
+                                        <input type="number" class="form-control bg-transparent border-secondary text-white" id="boletoDiretoValor" step="0.01" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-light"><strong>Vencimento</strong> *</label>
+                                    <input type="date" class="form-control bg-transparent border-secondary text-white" id="boletoDiretoVencimento" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-light"><strong>Descrição</strong></label>
+                                    <input type="text" class="form-control bg-transparent border-secondary text-white" id="boletoDiretoDescricao" placeholder="Ex: Pagamento adicional">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tabFormFatura">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <label class="form-label text-light"><strong>Fatura</strong> *</label>
+                                    <select class="form-select bg-transparent border-secondary text-white" id="boletoFaturaId" required>
+                                        <option value="" class="bg-dark">Selecione...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-secondary border-0 shadow-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary border-0 shadow-sm" onclick="criarNovoBoleto()">
+                    <i class="bi bi-plus-circle"></i> Gerar Boleto
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Detalhes -->
+<div class="modal fade" id="modalDetalheBoleto">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="background: var(--card-bg); color: var(--text-main);">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-file-earmark"></i> Detalhes do Boleto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 pb-4" id="conteudoDetalheBoleto">
+                <p class="text-center text-light">Carregando...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let boletos = [];
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        const hoje = new Date();
+        const vencimento = new Date(hoje.setDate(hoje.getDate() + 15));
+        document.getElementById('boletoDiretoVencimento').value = vencimento.toISOString().split('T')[0];
+        await carregarClientes();
+        await carregarFaturas();
+        await carregarBoletos();
+    });
+
+    async function carregarClientes() {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/v1/clientes/?page=1&per_page=100', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const clientes = Array.isArray(data) ? data : (data.clientes || []);
+                window.clientesData = clientes;
+                const select = document.getElementById('boletoDiretoCliente');
+                select.innerHTML = '<option value="">Selecione...</option>';
+                clientes.forEach(c => {
+                    select.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao carregar clientes:', error);
+        }
+    }
+
+    async function carregarFaturas() {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/v1/faturamento/faturas/?status=pendente', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const faturas = await response.json();
+                const select = document.getElementById('boletoFaturaId');
+                select.innerHTML = '<option value="">Selecione...</option>';
+                faturas.forEach(f => {
+                    select.innerHTML += `<option value="${f.id}">${f.numero_fatura} - R$ ${f.valor_total.toFixed(2)}</option>`;
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao carregar faturas:', error);
+        }
+    }
+
+    async function carregarBoletos() {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/faturamento/boletos', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                boletos = Array.isArray(data) ? data : [];
+                renderizarBoletos(boletos);
+                atualizarEstatisticas(boletos);
+            } else {
+                document.getElementById('tabelaBoletos').innerHTML = 
+                    '<tr><td colspan="6" class="text-center text-light" style="opacity: 0.7;">Nenhum boleto encontrado</td></tr>';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar boletos:', error);
+        }
+    }
+
+    function renderizarBoletos(boletosFiltrados) {
+        const corpo = document.getElementById('tabelaBoletos');
+        corpo.innerHTML = '';
+
+        if (boletosFiltrados.length === 0) {
+            corpo.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Nenhum boleto encontrado</td></tr>';
+            return;
+        }
+
+        const statusClass = { pendente: 'bg-warning', pago: 'bg-success', cancelado: 'bg-secondary', vencido: 'bg-danger' };
+
+        boletosFiltrados.forEach(b => {
+            const cliente = window.clientesData?.find(c => c.id == b.cliente_id);
+            const linha = `
+                <tr>
+                    <td>${b.numero_boleto}</td>
+                    <td>${cliente?.nome || `Cliente ${b.cliente_id}`}</td>
+                    <td>R$ ${b.valor.toFixed(2)}</td>
+                    <td>${new Date(b.data_vencimento).toLocaleDateString('pt-BR')}</td>
+                    <td><span class="badge ${statusClass[b.status] || 'bg-secondary'}">${b.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="verDetalhes(${b.id})"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-success" onclick="imprimirBoleto(${b.id})"><i class="bi bi-printer"></i></button>
+                    </td>
+                </tr>
+            `;
+            corpo.innerHTML += linha;
+        });
+    }
+
+    function atualizarEstatisticas(boletosList) {
+        const pendentes = boletosList.filter(b => b.status === 'pendente');
+        const pagos = boletosList.filter(b => b.status === 'pago');
+        const total = boletosList.reduce((acc, b) => acc + b.valor, 0);
+
+        document.getElementById('totalBoletos').textContent = total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+        document.getElementById('boletosPendentes').textContent = pendentes.length;
+        document.getElementById('boletosPagos').textContent = pagos.length;
+        document.getElementById('boletosVencidos').textContent = pendentes.filter(b => new Date(b.data_vencimento) < new Date()).length;
+    }
+
+    function filtrarBoletos() {
+        const clienteId = document.getElementById('filtroCliente').value;
+        const status = document.getElementById('filtroStatus').value;
+
+        let filtrados = boletos;
+        if (clienteId) filtrados = filtrados.filter(b => b.cliente_id == clienteId);
+        if (status) filtrados = filtrados.filter(b => b.status === status);
+
+        renderizarBoletos(filtrados);
+    }
+
+    async function criarNovoBoleto() {
+        const tipo = document.querySelector('#tabFormDireto').classList.contains('active') ? 'direto' : 'fatura';
+        showLoading('Criando boleto...');
+
+        try {
+            const token = localStorage.getItem('access_token');
+            let response;
+            if (tipo === 'direto') {
+                const body = {
+                    cliente_id: document.getElementById('boletoDiretoCliente').value,
+                    valor: parseFloat(document.getElementById('boletoDiretoValor').value),
+                    data_vencimento: document.getElementById('boletoDiretoVencimento').value,
+                    descricao: document.getElementById('boletoDiretoDescricao').value
+                };
+                response = await fetch('/api/faturamento/boletos', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+            } else {
+                const faturaId = document.getElementById('boletoFaturaId').value;
+                response = await fetch(`/api/faturamento/faturas/${faturaId}/boleto`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+            }
+
+            const data = await response.json();
+            if (response.ok) {
+                showToast('Boleto criado!', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('modalNovoBoleto')).hide();
+                await carregarBoletos();
+            } else {
+                showToast(data.detail || data.message || 'Erro', 'error');
+            }
+        } catch (error) {
+            showToast('Erro ao criar boleto', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    function verDetalhes(boletoId) {
+        const boleto = boletos.find(b => b.id === boletoId);
+        if (!boleto) return;
+
+        const cliente = window.clientesData?.find(c => c.id == boleto.cliente_id);
+        const detalhes = `
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Número:</strong> ${boleto.numero_boleto}</p>
+                    <p><strong>Cliente:</strong> ${cliente?.nome || 'N/A'}</p>
+                    <p><strong>Valor:</strong> R$ ${boleto.valor.toFixed(2)}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Vencimento:</strong> ${new Date(boleto.data_vencimento).toLocaleDateString('pt-BR')}</p>
+                    <p><strong>Status:</strong> ${boleto.status}</p>
+                    <p><strong>Código:</strong></p>
+                    <div class="codigo-barras">${boleto.codigo_barras || 'N/A'}</div>
+                </div>
+            </div>
+        `;
+        document.getElementById('conteudoDetalheBoleto').innerHTML = detalhes;
+        new bootstrap.Modal(document.getElementById('modalDetalheBoleto')).show();
+    }
+
+    function imprimirBoleto(boletoId) {
+        showToast('Redirecionando para impressão...', 'info');
+        window.open(`/boletos/${boletoId}/imprimir`, '_blank');
+    }
+
+    async function sincronizarComGerencianet() {
+        showLoading('Sincronizando...');
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/faturamento/boletos/sincronizar/todos', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                showToast('Sincronizado!', 'success');
+                await carregarBoletos();
+            } else {
+                showToast(data.detail || data.message || 'Erro', 'error');
+            }
+        } catch (error) {
+            showToast('Erro na sincronização', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "layout.html" %}
+
+{% block title %}Logs Huawei - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-journal-text"></i> Logs Huawei</h1>
+            <p class="text-muted mb-0">Visualize os logs do equipamento Huawei</p>
+        </div>
+        <button class="btn btn-outline-secondary" onclick="carregarLogs()">
+            <i class="bi bi-arrow-clockwise"></i> Atualizar
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="modal-header border-bottom-0 pt-4 px-4">
+            <h5 class="modal-title fw-bold"><i class="bi bi-journal-text"></i> Registros</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                <table class="table" id="tabelaLogs">
+                    <thead class="sticky-top" style="z-index: 10; background: var(--card-bg);">
+                        <tr>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Data/Hora</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Servidor</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Tipo</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Mensagem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoLogs" class="border-top-0">
+                        <tr><td colspan="4" class="text-center py-4" style="color: var(--text-secondary);">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', carregarLogs);
+
+    async function carregarLogs() {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/v1/huawei/logs', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const logs = await response.json();
+                renderizarLogs(logs);
+            } else {
+                document.getElementById('corpoLogs').innerHTML = 
+                    '<tr><td colspan="4" class="text-center py-4" style="color: var(--text-secondary);">Nenhum log encontrado</td></tr>';
+            }
+        } catch (error) {
+            document.getElementById('corpoLogs').innerHTML = 
+                '<tr><td colspan="4" class="text-center py-4 text-danger">Erro ao carregar logs</td></tr>';
+        }
+    }
+
+    function renderizarLogs(logsList) {
+        const corpo = document.getElementById('corpoLogs');
+        corpo.innerHTML = '';
+
+        if (logsList.length === 0) {
+            corpo.innerHTML = '<tr><td colspan="4" class="text-center py-4" style="color: var(--text-secondary);">Nenhum log encontrado</td></tr>';
+            return;
+        }
+
+        logsList.forEach(log => {
+            let badgeClass = 'bg-info';
+            if (log.tipo) {
+                const tipo = log.tipo.toLowerCase();
+                if (tipo.includes('error') || tipo.includes('critical')) badgeClass = 'bg-danger';
+                else if (tipo.includes('warning')) badgeClass = 'bg-warning text-dark';
+                else if (tipo.includes('info')) badgeClass = 'bg-info';
+            }
+
+            corpo.innerHTML += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${new Date(log.data_hora).toLocaleString('pt-BR')}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${log.servidor_nome || 'N/A'}</td>
+                    <td class="py-3"><span class="badge ${badgeClass}" style="font-weight: 500;">${log.tipo || 'INFO'}</span></td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${log.mensagem}</td>
+                </tr>
+            `;
+        });
+    }
+</script>
+{% endblock %}

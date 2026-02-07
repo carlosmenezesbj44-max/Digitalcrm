@@ -1,0 +1,398 @@
+{% extends "layout.html" %}
+
+{% block title %}{% if is_edit %}Editar Contrato{% else %}Novo Contrato{% endif %} - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        background: var(--card-bg);
+        border: 0;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .form-section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .form-section-title i {
+        font-size: 1.25rem;
+    }
+    .row-2col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    .row-3col {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+    }
+    @media (max-width: 1200px) {
+        .row-3col {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    @media (max-width: 768px) {
+        .row-2col, .row-3col {
+            grid-template-columns: 1fr;
+        }
+    }
+    .help-text {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-top: 6px;
+    }
+    .note-box {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: rgba(13, 110, 253, 0.05);
+        border-radius: 8px;
+        border-left: 4px solid var(--primary-color);
+    }
+    .note-box p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--text-main);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0 fw-bold" style="color: var(--text-main);">
+                {% if is_edit %}
+                <i class="bi bi-pencil-square"></i> Editar Contrato
+                {% else %}
+                <i class="bi bi-plus-circle"></i> Novo Contrato
+                {% endif %}
+            </h1>
+            <p class="mb-0" style="color: var(--text-secondary);">
+                {% if is_edit %}
+                Atualize os dados do contrato conforme necessário
+                {% else %}
+                Preencha os dados abaixo para criar um novo contrato profissional
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert" style="background: rgba(231, 76, 60, 0.1); color: var(--text-main);">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <form method="post" action="{% if is_edit %}/contratos/{{ contrato.id }}/editar{% else %}/contratos/novo{% endif %}" id="contratoForm">
+        <!-- SEÇÃO 1: INFORMAÇÕES DO CLIENTE -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="bi bi-person-check"></i> Informações do Cliente
+            </div>
+            <div class="row-2col">
+                <div>
+                    <label for="cliente_id" class="form-label fw-bold text-light">Cliente *</label>
+                    <div class="input-group">
+                        <select class="form-select bg-transparent border-secondary text-white" id="cliente_id" name="cliente_id" required>
+                            <option value="" class="bg-dark">Selecione um cliente...</option>
+                            {% for cliente in clientes %}
+                            <option value="{{ cliente.id }}" class="bg-dark" {% if contrato and cliente.id == contrato.cliente_id %}selected{% endif %}>{{ cliente.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-outline-secondary border-secondary text-white" type="button" data-bs-toggle="modal" data-bs-target="#clienteSearchModal">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                    <div class="help-text">Selecione o cliente que será beneficiário do contrato</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 2: INFORMAÇÕES DO CONTRATO -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="bi bi-file-text"></i> Informações do Contrato
+            </div>
+            <div class="mb-4">
+                <label for="titulo" class="form-label fw-bold text-light">Título do Contrato *</label>
+                <input type="text" class="form-control bg-transparent border-secondary text-white" id="titulo" name="titulo" placeholder="Ex: Contrato de Serviços de Internet" value="{{ contrato.titulo if contrato else '' }}" required>
+                <div class="help-text">Identificação clara do contrato</div>
+            </div>
+            <div class="mb-4">
+                <label for="descricao" class="form-label fw-bold text-light">Descrição Detalhada</label>
+                <textarea class="form-control bg-transparent border-secondary text-white" id="descricao" name="descricao" rows="4" placeholder="Detalhe os serviços, características técnicas e especificações do contrato...">{{ contrato.descricao if contrato else '' }}</textarea>
+                <div class="help-text">Descrição que aparecerá no contrato PDF</div>
+            </div>
+            <div class="row-2col">
+                <div>
+                    <label for="tipo_contrato" class="form-label fw-bold text-light">Tipo de Contrato *</label>
+                    <select class="form-select bg-transparent border-secondary text-white" id="tipo_contrato" name="tipo_contrato" required>
+                        <option value="servico" class="bg-dark" {% if contrato and contrato.tipo_contrato.value == 'servico' %}selected{% endif %}>Serviço</option>
+                        <option value="assinatura" class="bg-dark" {% if contrato and contrato.tipo_contrato.value == 'assinatura' %}selected{% endif %}>Assinatura</option>
+                        <option value="manutencao" class="bg-dark" {% if contrato and contrato.tipo_contrato.value == 'manutencao' %}selected{% endif %}>Manutenção</option>
+                        <option value="suporte" class="bg-dark" {% if contrato and contrato.tipo_contrato.value == 'suporte' %}selected{% endif %}>Suporte</option>
+                        <option value="outro" class="bg-dark" {% if contrato and contrato.tipo_contrato.value == 'outro' %}selected{% endif %}>Outro</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="status_renovacao" class="form-label fw-bold text-light">Política de Renovação *</label>
+                    <select class="form-select bg-transparent border-secondary text-white" id="status_renovacao" name="status_renovacao" required>
+                        <option value="renovacao_manual" class="bg-dark" {% if contrato and contrato.status_renovacao.value == 'renovacao_manual' %}selected{% endif %}>Renovação Manual</option>
+                        <option value="renovacao_automatica" class="bg-dark" {% if contrato and contrato.status_renovacao.value == 'renovacao_automatica' %}selected{% endif %}>Renovação Automática</option>
+                        <option value="nao_renovavel" class="bg-dark" {% if contrato and contrato.status_renovacao.value == 'nao_renovavel' %}selected{% endif %}>Não Renovável</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 3: VIGÊNCIA DO CONTRATO -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="bi bi-calendar-range"></i> Vigência do Contrato
+            </div>
+            <div class="row-2col">
+                <div>
+                    <label for="data_vigencia_inicio" class="form-label fw-bold text-light">Data de Início *</label>
+                    <input type="date" class="form-control bg-transparent border-secondary text-white" id="data_vigencia_inicio" name="data_vigencia_inicio" value="{{ contrato.data_vigencia_inicio.strftime('%Y-%m-%d') if contrato and contrato.data_vigencia_inicio else '' }}" required>
+                    <div class="help-text">Quando o contrato começa a vigorar</div>
+                </div>
+                <div>
+                    <label for="data_vigencia_fim" class="form-label fw-bold text-light">Data de Término *</label>
+                    <input type="date" class="form-control bg-transparent border-secondary text-white" id="data_vigencia_fim" name="data_vigencia_fim" value="{{ contrato.data_vigencia_fim.strftime('%Y-%m-%d') if contrato and contrato.data_vigencia_fim else '' }}" required>
+                    <div class="help-text">Quando o contrato termina</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 4: VALORES E FINANCEIRO -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="bi bi-cash-coin"></i> Valores e Financeiro
+            </div>
+            <div class="row-3col">
+                <div>
+                    <label for="valor_contrato" class="form-label fw-bold" style="color: var(--text-secondary);">Valor do Contrato (Período) *</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-secondary text-white">R$</span>
+                        <input type="number" class="form-control bg-transparent border-secondary text-white" id="valor_contrato" name="valor_contrato" placeholder="0.00" step="0.01" value="{{ contrato.valor_contrato if contrato and contrato.valor_contrato is not none else '' }}" required>
+                    </div>
+                    <div class="help-text">Valor total ou mensal do contrato</div>
+                </div>
+                <div>
+                    <label for="moeda" class="form-label fw-bold" style="color: var(--text-secondary);">Moeda</label>
+                    <select class="form-select bg-transparent border-secondary text-white" id="moeda" name="moeda">
+                        <option value="BRL" class="bg-dark" {% if contrato and contrato.moeda == 'BRL' %}selected{% endif %}>Real (BRL)</option>
+                        <option value="USD" class="bg-dark" {% if contrato and contrato.moeda == 'USD' %}selected{% endif %}>Dólar (USD)</option>
+                        <option value="EUR" class="bg-dark" {% if contrato and contrato.moeda == 'EUR' %}selected{% endif %}>Euro (EUR)</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="desconto_total" class="form-label fw-bold" style="color: var(--text-secondary);">Desconto Total</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-secondary text-white">R$</span>
+                        <input type="number" class="form-control bg-transparent border-secondary text-white" id="desconto_total" name="desconto_total" placeholder="0.00" step="0.01" value="{{ contrato.desconto_total if contrato and contrato.desconto_total is not none else 0 }}">
+                    </div>
+                    <div class="help-text">Desconto a ser aplicado (opcional)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 5: CONFIGURAÇÃO DE PAGAMENTOS -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="bi bi-calendar-event"></i> Configuração de Pagamentos
+            </div>
+            <div class="row-3col">
+                <div>
+                    <label for="dia_pagamento" class="form-label fw-bold" style="color: var(--text-secondary);">Dia de Vencimento *</label>
+                    <select class="form-select bg-transparent border-secondary text-white" id="dia_pagamento" name="dia_pagamento" required>
+                        {% for dia in range(1, 29) %}
+                        <option value="{{ dia }}" class="bg-dark" {% if (contrato and dia == contrato.dia_pagamento) or (not contrato and dia == 10) %}selected{% endif %}>{{ dia }}º de cada mês</option>
+                        {% endfor %}
+                    </select>
+                    <div class="help-text">Dia fixo para vencimento das parcelas</div>
+                </div>
+                <div>
+                    <label for="frequencia_pagamento" class="form-label fw-bold" style="color: var(--text-secondary);">Frequência de Pagamento *</label>
+                    <select class="form-select bg-transparent border-secondary text-white" id="frequencia_pagamento" name="frequencia_pagamento" required>
+                        <option value="mensal" class="bg-dark" {% if not contrato or contrato.frequencia_pagamento == 'mensal' %}selected{% endif %}>Mensal</option>
+                        <option value="bimestral" class="bg-dark" {% if contrato and contrato.frequencia_pagamento == 'bimestral' %}selected{% endif %}>Bimestral</option>
+                        <option value="trimestral" class="bg-dark" {% if contrato and contrato.frequencia_pagamento == 'trimestral' %}selected{% endif %}>Trimestral</option>
+                        <option value="semestral" class="bg-dark" {% if contrato and contrato.frequencia_pagamento == 'semestral' %}selected{% endif %}>Semestral</option>
+                        <option value="anual" class="bg-dark" {% if contrato and contrato.frequencia_pagamento == 'anual' %}selected{% endif %}>Anual</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="juros_atraso_percentual" class="form-label fw-bold" style="color: var(--text-secondary);">Juros por Atraso (% a.m.)</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control bg-transparent border-secondary text-white" id="juros_atraso_percentual" name="juros_atraso_percentual" placeholder="1.0" step="0.1" value="{{ contrato.juros_atraso_percentual if contrato and contrato.juros_atraso_percentual is not none else 1.0 }}">
+                        <span class="input-group-text bg-transparent border-secondary text-white">% ao mês</span>
+                    </div>
+                    <div class="help-text">Taxa de juros em caso de atraso</div>
+                </div>
+            </div>
+            <div class="note-box mt-3" style="background: rgba(0, 163, 255, 0.1);">
+                <p style="color: var(--text-main);">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Nota:</strong> As faturas serão geradas automaticamente a partir do primeiro vencimento até o término do contrato.
+                </p>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 6: OBSERVAÇÕES -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="bi bi-chat-left-text"></i> Observações
+            </div>
+            <textarea class="form-control bg-transparent border-secondary text-white" id="observacoes" name="observacoes" rows="3" placeholder="Observações internas, cláusulas especiais ou notas adicionais...">{{ contrato.observacoes if contrato else '' }}</textarea>
+        </div>
+
+        <!-- SEÇÃO 7: OPÇÕES DE GERAÇÃO -->
+        <div class="form-section">
+            <div class="form-section-title">
+                <i class="bi bi-file-earmark-pdf"></i> Geração do Contrato
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="incluir_pdf" name="incluir_pdf" value="true" {% if not is_edit %}checked{% endif %}>
+                    <label class="form-check-label fw-bold" for="incluir_pdf" style="color: var(--text-main);">
+                        {% if is_edit %}Regenerar PDF do contrato{% else %}Gerar PDF automaticamente{% endif %}
+                    </label>
+                </div>
+            </div>
+            <div class="help-text">Um arquivo PDF será criado automaticamente com base no template do contrato</div>
+        </div>
+
+        <!-- BOTÕES DE AÇÃO -->
+        <div class="d-flex gap-2 mt-4 mb-5">
+            <button type="submit" class="btn btn-primary px-5 py-2 fw-bold border-0 shadow-sm">
+                <i class="bi bi-check-circle"></i> {% if is_edit %}Salvar Alterações{% else %}Criar Contrato{% endif %}
+            </button>
+            <a href="/contratos" class="btn btn-outline-secondary px-5 py-2 fw-bold border-secondary text-white shadow-sm">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Modal de Busca de Cliente -->
+<div class="modal fade" id="clienteSearchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg" style="background: var(--card-bg); color: var(--text-main);">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" style="color: var(--text-main);">Buscar Cliente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <div class="mb-3">
+                    <label for="clienteSearchInput" class="form-label fw-bold text-light">Digite o nome do cliente</label>
+                    <input type="text" class="form-control bg-transparent border-secondary text-white" id="clienteSearchInput" placeholder="Buscar por nome, email ou empresa...">
+                </div>
+                <button type="button" class="btn btn-primary border-0 shadow-sm" onclick="buscarClientes()">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+                <div id="clienteSearchResults" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function buscarClientes() {
+        const query = document.getElementById('clienteSearchInput').value.trim();
+        if (!query) {
+            alert('Digite um nome para buscar');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/clientes/search?q=${encodeURIComponent(query)}`);
+            if (!response.ok) {
+                throw new Error('Erro na busca');
+            }
+            const clientes = await response.json();
+
+            const resultsDiv = document.getElementById('clienteSearchResults');
+            if (clientes.length === 0) {
+                resultsDiv.innerHTML = '<p class="text-muted text-center py-3">Nenhum cliente encontrado.</p>';
+                return;
+            }
+
+            let html = '<div class="list-group mt-3">';
+            clientes.forEach(cliente => {
+                html += `<div class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-color">
+                    <div>
+                        <h6 class="mb-1 fw-bold">${cliente.nome}</h6>
+                        <p class="mb-0 text-muted" style="font-size: 12px;">${cliente.email || 'Sem email'}</p>
+                    </div>
+                    <button class="btn btn-sm btn-primary" onclick="selecionarCliente(${cliente.id}, '${cliente.nome}')">Selecionar</button>
+                </div>`;
+            });
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        } catch (error) {
+            document.getElementById('clienteSearchResults').innerHTML = '<p class="text-danger text-center py-3">Erro ao buscar clientes.</p>';
+        }
+    }
+
+    function selecionarCliente(id, nome) {
+        const select = document.getElementById('cliente_id');
+        let option = select.querySelector(`option[value="${id}"]`);
+        if (!option) {
+            option = document.createElement('option');
+            option.value = id;
+            option.textContent = nome;
+            select.appendChild(option);
+        }
+        select.value = id;
+        const modal = bootstrap.Modal.getInstance(document.getElementById('clienteSearchModal'));
+        modal.hide();
+    }
+
+    // Auto-calcular data de término (12 meses após o início)
+    document.getElementById('data_vigencia_inicio').addEventListener('change', function() {
+        const dataInicio = new Date(this.value);
+        if (isNaN(dataInicio.getTime())) return;
+        
+        const dataFim = new Date(dataInicio.getFullYear() + 1, dataInicio.getMonth(), dataInicio.getDate());
+        
+        const ano = dataFim.getFullYear();
+        const mes = String(dataFim.getMonth() + 1).padStart(2, '0');
+        const dia = String(dataFim.getDate()).padStart(2, '0');
+        
+        document.getElementById('data_vigencia_fim').value = `${ano}-${mes}-${dia}`;
+    });
+
+    // Validação do formulário
+    document.getElementById('contratoForm').addEventListener('submit', function(e) {
+        const dataInicio = new Date(document.getElementById('data_vigencia_inicio').value);
+        const dataFim = new Date(document.getElementById('data_vigencia_fim').value);
+        
+        if (dataFim <= dataInicio) {
+            e.preventDefault();
+            alert('A data de término deve ser posterior à data de início!');
+            return false;
+        }
+
+        const valor = parseFloat(document.getElementById('valor_contrato').value);
+        if (valor <= 0) {
+            e.preventDefault();
+            alert('O valor do contrato deve ser maior que zero!');
+            return false;
+        }
+    });
+</script>
+{% endblock %}

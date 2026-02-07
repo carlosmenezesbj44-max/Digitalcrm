@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+
+{% block title %}Servidores - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-server"></i> Servidores</h1>
+            <p class="text-muted mb-0">Gerencie os servidores do provedor</p>
+        </div>
+        <a href="/servidores/novo" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Novo Servidor
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Cards de Servidores -->
+    <div class="row" id="listaServidores">
+        {% if servidores %}
+            {% for servidor in servidores %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 border-0 shadow-sm" style="background: var(--card-bg);">
+                    <div class="modal-header border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                        <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-hdd"></i> {{ servidor.nome }}</h5>
+                        <span class="badge bg-{{ 'success' if servidor.status == 'online' else 'danger' }}" style="font-weight: 500;">
+                            {{ servidor.status }}
+                        </span>
+                    </div>
+                    <div class="card-body px-4 pb-4">
+                        <div class="mb-2">
+                            <label class="small text-uppercase fw-bold mb-1" style="color: var(--text-secondary); letter-spacing: 0.5px; font-size: 0.7rem;">IP</label>
+                            <div style="color: var(--text-main); font-weight: 500;">{{ servidor.ip }}</div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="small text-uppercase fw-bold mb-1" style="color: var(--text-secondary); letter-spacing: 0.5px; font-size: 0.7rem;">Tipo</label>
+                            <div style="color: var(--text-main); font-weight: 500;">{{ servidor.tipo }}</div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="small text-uppercase fw-bold mb-1" style="color: var(--text-secondary); letter-spacing: 0.5px; font-size: 0.7rem;">Local</label>
+                            <div style="color: var(--text-main); font-weight: 500;">{{ servidor.localizacao or 'Não informado' }}</div>
+                        </div>
+                        <div class="mb-0">
+                            <label class="small text-uppercase fw-bold mb-1" style="color: var(--text-secondary); letter-spacing: 0.5px; font-size: 0.7rem;">Descrição</label>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem;">{{ servidor.descricao or '-' }}</div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0 px-4 pb-4 pt-0">
+                        <div class="btn-group w-100">
+                            <a href="/servidores/{{ servidor.id }}/editar" class="btn btn-outline-warning btn-sm border-0">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <button class="btn btn-outline-danger btn-sm border-0" onclick="excluirServidor({{ servidor.id }})">
+                                <i class="bi bi-trash"></i> Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-server display-4 mb-3" style="color: var(--text-secondary); opacity: 0.5;"></i>
+                <h5 style="color: var(--text-main);">Nenhum servidor cadastrado</h5>
+                <p style="color: var(--text-secondary);">Clique em "Novo Servidor" para começar.</p>
+                <a href="/servidores/novo" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Novo Servidor
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function excluirServidor(id) {
+        if (!confirm('Tem certeza que deseja excluir este servidor?')) return;
+        showLoading('Excluindo servidor...');
+        fetch(`/servidores/${id}/excluir`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Servidor excluído!', 'success');
+                    location.reload();
+                } else {
+                    showToast(data.message || 'Erro', 'error');
+                }
+            })
+            .catch(() => showToast('Erro ao excluir', 'error'))
+            .finally(() => hideLoading());
+    }
+</script>
+{% endblock %}

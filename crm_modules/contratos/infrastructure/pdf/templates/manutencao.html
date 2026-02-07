@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>CONTRATO DE MANUTENÇÃO</title>
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.5; padding: 40px; }
+        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 15px; }
+        .header h1 { font-size: 13pt; font-weight: bold; }
+        .section { margin-bottom: 20px; }
+        .section h2 { font-size: 11pt; font-weight: bold; border-bottom: 1px solid #ccc; }
+        .section p { margin-bottom: 6px; text-align: justify; }
+        .section ul { margin-left: 20px; }
+        .signature-block { margin-top: 50px; display: flex; justify-content: space-between; gap: 30px; }
+        .signature { width: 48%; text-align: center; border-top: 1px solid #000; padding-top: 8px; }
+        strong { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div style="max-width: 800px; margin: 0 auto;">
+        <div class="header">
+            <h1>CONTRATO DE MANUTENÇÃO</h1>
+            <p><strong>Contrato nº:</strong> {{ contrato_id }}</p>
+            <p style="text-align: right;"><strong>Data:</strong> {{ data_atual }}</p>
+        </div>
+
+        <div class="section">
+            <h2>1. DAS PARTES</h2>
+            <p><strong>PRESTADORA:</strong> {{ empresa_nome }}, CNPJ {{ empresa_cnpj }}.</p>
+            <p><strong>CONTRATANTE:</strong> {{ cliente_nome }}, CPF {{ cliente_cpf }}.</p>
+        </div>
+
+        <div class="section">
+            <h2>2. OBJETO</h2>
+            <p>
+                Serviços de manutenção contínua para <strong>{{ contrato_titulo }}</strong>.
+            </p>
+            <p><strong>Descrição:</strong> {{ contrato_descricao }}</p>
+            <p><strong>Valor mensal:</strong> {{ contrato_valor }}</p>
+        </div>
+
+        <div class="section">
+            <h2>3. OBRIGAÇÕES DA PRESTADORA</h2>
+            <ul>
+                <li>Realizar manutenção preventiva conforme cronograma;</li>
+                <li>Atender a chamados de manutenção corretiva;</li>
+                <li>Manter registros de todas as intervenções;</li>
+                <li>Garantir disponibilidade do serviço.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>4. OBRIGAÇÕES DO CONTRATANTE</h2>
+            <ul>
+                <li>Pagar as mensalidades em dia;</li>
+                <li>Permitir acesso aos técnicos;</li>
+                <li>Comunicar problemas rapidamente.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>5. PAGAMENTO</h2>
+            <p>Vencimento: dia 10 de cada mês. Atraso suspenderá o serviço.</p>
+        </div>
+
+        <div class="section">
+            <h2>6. VALIDADE</h2>
+            <p>Período: {{ data_vigencia_inicio }} a {{ data_vigencia_fim }} (12 meses).</p>
+        </div>
+
+        <div class="signature-block">
+            <div class="signature">
+                <p>&nbsp;</p>
+                <p>_______________________________</p>
+                <p><strong>{{ empresa_nome }}</strong></p>
+                <p>PRESTADORA</p>
+            </div>
+            <div class="signature">
+                <p>&nbsp;</p>
+                <p>_______________________________</p>
+                <p><strong>{{ cliente_nome }}</strong></p>
+                <p>CONTRATANTE</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

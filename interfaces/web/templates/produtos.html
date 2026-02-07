@@ -1,0 +1,244 @@
+{% extends "layout.html" %}
+
+{% block title %}Produtos - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        background-color: var(--primary-color);
+        color: white;
+        font-size: 14px;
+    }
+    
+    #viewCards .avatar-circle {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0" style="color: var(--text-main); font-weight: 700;">
+                <i class="bi bi-box"></i> Produtos
+            </h1>
+            <p style="color: var(--text-secondary); opacity: 0.8;" class="mb-0">Gerencie os produtos do estoque</p>
+        </div>
+        <a href="/produtos/novo" class="btn btn-primary border-0 shadow-sm px-3">
+            <i class="bi bi-plus-circle"></i> Novo Produto
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger border-0 shadow-sm mb-4" role="alert" style="background-color: rgba(231, 76, 60, 0.1); color: #e74c3c;">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Barra de ações -->
+    <div class="d-flex justify-content-end mb-3">
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm border-secondary border-opacity-25" id="btnToggleView">
+                <i class="bi bi-grid"></i> Cards
+            </button>
+            <button class="btn btn-outline-success btn-sm border-success border-opacity-25" id="btnExportar">
+                <i class="bi bi-download"></i> Exportar
+            </button>
+        </div>
+    </div>
+
+    <!-- Visualização em Tabela -->
+    <div id="viewTable" class="table-responsive">
+        <table class="table table-hover" id="tabelaProdutos">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th class="d-none d-md-table-cell" style="color: var(--text-main);">ID</th>
+                    <th style="color: var(--text-main);">Nome</th>
+                    <th class="d-none d-lg-table-cell" style="color: var(--text-main);">SKU</th>
+                    <th class="d-none d-lg-table-cell" style="color: var(--text-main);">Preço</th>
+                    <th class="d-none d-xl-table-cell" style="color: var(--text-main);">Estoque</th>
+                    <th style="color: var(--text-main);">Status</th>
+                    <th style="color: var(--text-main);">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="border-top-0">
+                {% if produtos %}
+                    {% for produto in produtos %}
+                    <tr>
+                        <td class="d-none d-md-table-cell" style="color: var(--text-main);">{{ produto.id }}</td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-2">{{ produto.nome[0].upper() }}</div>
+                                <div>
+                                    <div class="fw-bold" style="color: var(--text-main);">{{ produto.nome }}</div>
+                                    <small style="color: var(--text-secondary);" class="d-block d-md-none">R$ {{ "%.2f"|format(produto.preco) }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="d-none d-lg-table-cell" style="color: var(--text-main);">{{ produto.sku or '-' }}</td>
+                        <td class="d-none d-lg-table-cell" style="color: var(--text-main);">R$ {{ "%.2f"|format(produto.preco) }}</td>
+                        <td class="d-none d-xl-table-cell" style="color: var(--text-main);">{{ produto.quantidade_estoque or 0 }}</td>
+                        <td>
+                            {% if produto.ativo %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-weight: 500;">Ativo</span>
+                            {% else %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-weight: 500;">Inativo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="/produtos/{{ produto.id }}/editar" class="btn btn-sm btn-outline-warning border-warning border-opacity-25" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary border-secondary border-opacity-25 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                                        <li><a class="dropdown-item text-white" href="/produtos/{{ produto.id }}/editar"><i class="bi bi-pencil me-2"></i> Editar</a></li>
+                                        <li><hr class="dropdown-divider border-secondary"></li>
+                                        <li><button class="dropdown-item text-danger" onclick="excluirProduto({{ produto.id }})"><i class="bi bi-trash me-2"></i> Excluir</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5" style="color: var(--text-secondary);">
+                            <i class="bi bi-box display-4 opacity-25 mb-3"></i>
+                            <br>Nenhum produto cadastrado
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Visualização em Cards -->
+    <div id="viewCards" class="row g-3" style="display: none;">
+        {% if produtos %}
+            {% for produto in produtos %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm" style="background: var(--card-bg);">
+                    <div class="modal-header border-bottom-0 pt-4 px-4">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle me-3">{{ produto.nome[0].upper() }}</div>
+                            <div>
+                                <h6 class="mb-0 fw-bold" style="color: var(--text-main);">{{ produto.nome }}</h6>
+                                <small style="color: var(--text-secondary);">ID: {{ produto.id }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body px-4 py-3">
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <small style="color: var(--text-secondary);" class="d-block mb-1">SKU</small>
+                                <span style="color: var(--text-main);">{{ produto.sku or '-' }}</span>
+                            </div>
+                            <div class="col-6">
+                                <small style="color: var(--text-secondary);" class="d-block mb-1">Preço</small>
+                                <span class="h5 text-primary fw-bold">R$ {{ "%.2f"|format(produto.preco) }}</span>
+                            </div>
+                            <div class="col-6">
+                                <small style="color: var(--text-secondary);" class="d-block mb-1">Estoque</small>
+                                <span style="color: var(--text-main);">{{ produto.quantidade_estoque or 0 }}</span>
+                            </div>
+                            <div class="col-6">
+                                <small style="color: var(--text-secondary);" class="d-block mb-1">Status</small>
+                                {% if produto.ativo %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-weight: 500;">Ativo</span>
+                                {% else %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-weight: 500;">Inativo</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0 px-4 pb-4">
+                        <div class="btn-group w-100" role="group">
+                            <a href="/produtos/{{ produto.id }}/editar" class="btn btn-outline-warning btn-sm border-warning border-opacity-25">
+                                <i class="bi bi-pencil"></i> Editar
+                            </a>
+                            <button class="btn btn-outline-danger btn-sm border-danger border-opacity-25" onclick="excluirProduto({{ produto.id }})">
+                                <i class="bi bi-trash"></i> Excluir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5" style="color: var(--text-secondary);">
+                <i class="bi bi-box display-4 opacity-25 mb-3"></i>
+                <br>Nenhum produto encontrado
+            </div>
+        {% endif %}
+    </div>
+
+    {% if not produtos %}
+    <div class="alert alert-info border-0 shadow-sm mt-4" role="alert" style="background-color: rgba(52, 152, 219, 0.1); color: #3498db;">
+        <i class="bi bi-info-circle"></i> Nenhum produto cadastrado ainda.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function excluirProduto(produtoId) {
+        if (confirm('Tem certeza que deseja excluir este produto?')) {
+            showLoading('Excluindo produto...');
+            
+            fetch(`/produtos/${produtoId}/excluir`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToastFromResponse(data);
+                    location.reload();
+                } else {
+                    showToastFromResponse(data);
+                }
+            })
+            .catch(error => {
+                showToast('Erro ao excluir produto.', 'error');
+            })
+            .finally(() => hideLoading());
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initViewToggle('table');
+        
+        document.getElementById('btnExportar')?.addEventListener('click', function() {
+            const data = [];
+            document.querySelectorAll('#tabelaProdutos tbody tr').forEach(tr => {
+                const tds = tr.querySelectorAll('td');
+                if (tds.length >= 6) {
+                    data.push({
+                        id: tds[0]?.textContent.trim() || '',
+                        nome: tr.querySelector('.fw-bold')?.textContent.trim() || '',
+                        sku: tds[2]?.textContent.trim() || '',
+                        preco: tds[3]?.textContent.trim() || '',
+                        estoque: tds[4]?.textContent.trim() || ''
+                    });
+                }
+            });
+            exportToCSV(data, 'produtos');
+        });
+    });
+</script>
+{% endblock %}

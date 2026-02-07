@@ -1,0 +1,1051 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos específicos da dashboard */
+    .dashboard-wrapper {
+        padding: 0;
+        color: var(--text-main);
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Top Bar Layout */
+    .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 4px 0;
+    }
+
+    /* Top Bar Search */
+    .search-group {
+        display: flex;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .search-select {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        border-radius: 8px;
+        padding: 8px 15px;
+        min-width: 110px;
+        height: 42px;
+        transition: all 0.2s ease;
+    }
+
+    .search-select:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 163, 255, 0.1);
+    }
+
+    .search-input-wrapper {
+        position: relative;
+        flex: 1;
+        max-width: 280px;
+    }
+
+    .search-input {
+        width: 100%;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        border-radius: 8px;
+        padding: 8px 15px 8px 40px;
+        height: 42px;
+        transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 163, 255, 0.1);
+    }
+
+    .search-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+    }
+
+    .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-top {
+        background: #1c2833;
+        border: 1px solid var(--border-color);
+        color: white;
+        border-radius: 20px;
+        padding: 8px 20px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        text-decoration: none;
+    }
+
+    .btn-top.active {
+        background: white;
+        color: #0b141a;
+    }
+
+    .icon-btn {
+        color: var(--text-main);
+        font-size: 20px;
+        text-decoration: none;
+    }
+
+    /* User Widget */
+    .user-widget {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 999px;
+        padding: 6px 10px 6px 6px;
+        cursor: grab;
+        user-select: none;
+        position: relative;
+        transition: box-shadow 0.2s ease, transform 0.2s ease;
+        max-width: 170px;
+    }
+
+    .user-widget.dragging {
+        cursor: grabbing;
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    }
+
+    .user-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 14px;
+        text-transform: uppercase;
+        flex: 0 0 auto;
+    }
+
+    .user-info {
+        line-height: 1.1;
+    }
+
+    .user-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-main);
+        max-width: 80px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-role {
+        font-size: 10px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .user-actions-btn {
+        color: var(--text-secondary);
+        font-size: 16px;
+        text-decoration: none;
+        padding: 4px 6px;
+        border-radius: 8px;
+    }
+
+    .user-actions-btn:hover {
+        color: var(--text-main);
+        background: rgba(255, 255, 255, 0.04);
+    }
+
+    .user-menu {
+        min-width: 220px;
+        padding: 10px;
+        border-radius: 12px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+    }
+
+    .user-menu .dropdown-item {
+        color: var(--text-main);
+        border-radius: 8px;
+        font-size: 13px;
+        padding: 8px 10px;
+    }
+
+    .user-menu .dropdown-item:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .user-meta {
+        padding: 8px 10px 10px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        margin-bottom: 8px;
+    }
+
+    .user-meta .email {
+        font-size: 11px;
+        color: var(--text-secondary);
+        word-break: break-all;
+    }
+
+    @media (max-width: 768px) {
+        .user-widget {
+            width: 100%;
+            justify-content: space-between;
+        }
+        .user-name {
+            max-width: 180px;
+        }
+    }
+
+    /* Dashboard Grid */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 20px;
+        grid-auto-flow: row dense;
+    }
+
+    .card-db {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid var(--border-color);
+        height: 100%;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.2s ease;
+    }
+
+    .card-db:hover {
+        transform: translateY(-5px);
+    }
+
+    .card-title {
+        font-size: 13px;
+        font-weight: 500;
+        margin-bottom: 12px;
+        color: var(--text-secondary);
+        text-align: left; /* Título alinhado à esquerda como na imagem */
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* KPI Cards */
+    .col-os { grid-column: span 3; }
+    .col-atendimentos { grid-column: span 3; }
+    .col-status-contratos { grid-column: span 3; }
+    .col-contratos-donut { grid-column: span 3; }
+    
+    .col-clientes { grid-column: span 3; }
+    .col-30-dias { grid-column: span 3; }
+    .col-backup { grid-column: span 3; }
+    .col-outros { grid-column: span 3; } /* Adicionado para preencher a linha */
+    
+    .col-financeiro { grid-column: span 4; }
+    .col-prospects { grid-column: span 4; }
+    .col-vendas { grid-column: span 4; } /* Adicionado */
+    .col-evolucao { grid-column: span 12; }
+
+    /* OS Card Specific */
+    .os-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-top: auto;
+    }
+
+    .os-box {
+        text-align: center;
+        flex: 1;
+    }
+
+    .os-number {
+        font-size: 28px;
+        font-weight: 700;
+        padding: 8px;
+        border-radius: 6px;
+        display: block;
+        width: 100%;
+    }
+
+    .os-number.blue { background: #00a3ff; color: white; }
+    .os-number.orange { background: #ff9f43; color: white; }
+
+    .os-label {
+        font-size: 11px;
+        margin-top: 5px;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    /* Status List Improvement */
+    .status-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .status-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 12px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .status-info {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%; /* Bolinhas arredondadas */
+    }
+
+    .status-value {
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    /* Gauge Chart Placeholder */
+    .gauge-wrapper {
+        position: relative;
+        height: 100px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .gauge-center {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        pointer-events: none;
+        line-height: 1;
+    }
+
+    .gauge-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    .gauge-label {
+        font-size: 10px;
+        color: var(--text-secondary);
+    }
+
+    /* Chart wrappers */
+    .chart-h { height: 120px; position: relative; }
+    .chart-m { height: 180px; position: relative; }
+    .chart-l { height: 280px; position: relative; }
+
+    @media (max-width: 1400px) {
+        .col-os, .col-atendimentos, .col-status-contratos, .col-contratos-donut,
+        .col-clientes, .col-30-dias, .col-backup, .col-financeiro, .col-prospects {
+            grid-column: span 6;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .col-os, .col-atendimentos, .col-status-contratos, .col-contratos-donut,
+        .col-clientes, .col-30-dias, .col-backup, .col-financeiro, .col-prospects {
+            grid-column: span 12;
+        }
+        .top-bar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 15px;
+        }
+        .search-group {
+            flex-direction: column;
+            width: 100%;
+        }
+        .search-input-wrapper {
+            max-width: none;
+        }
+        .top-actions {
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set view = request.query_params.get('view', 'principal') %}
+<div class="dashboard-wrapper">
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <form action="/clientes" method="GET" class="search-group" id="dashboardSearchForm">
+            <select name="field" class="search-select" id="searchField">
+                <option value="todos">Todos</option>
+                <option value="endereco">Endereço</option>
+                <option value="email">Email</option>
+                <option value="nome">Nome</option>
+                <option value="cpf/cnpj">CPF/CNPJ</option>
+                <option value="login">Login</option>
+            </select>
+            <div class="search-input-wrapper">
+                <input type="text" name="q" class="search-input" placeholder="Buscar clientes..." id="searchInput" onkeypress="if(event.key === 'Enter') { this.form.submit(); return false; }">
+                <i class="bi bi-search search-icon" style="cursor: pointer;" onclick="document.getElementById('dashboardSearchForm').submit();"></i>
+            </div>
+        </form>
+        
+        <div class="top-actions">
+            <select class="search-select" style="min-width: 200px;" onchange="switchDashboard(this.value)" id="dashboardSelector">
+                <option value="principal" {% if not request.query_params.get('view') or request.query_params.get('view') == 'principal' %}selected{% endif %}>Dashboard principal</option>
+                <option value="financeiro" {% if request.query_params.get('view') == 'financeiro' %}selected{% endif %}>Dashboard Financeiro</option>
+                <option value="suporte" {% if request.query_params.get('view') == 'suporte' %}selected{% endif %}>Dashboard Suporte</option>
+                <option value="vendas" {% if request.query_params.get('view') == 'vendas' %}selected{% endif %}>Dashboard Vendas</option>
+                <option value="tecnico" {% if request.query_params.get('view') == 'tecnico' %}selected{% endif %}>Dashboard Técnico</option>
+            </select>
+            <a href="#" class="btn-top active">
+                <i class="bi bi-check-circle-fill"></i> Guia NFCom
+            </a>
+            <a href="#" class="icon-btn"><i class="bi bi-bell"></i></a>
+            <div class="dropdown">
+                <div class="user-widget dropdown-toggle" id="userWidget" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Usuário</div>
+                        <div class="user-role" id="userRole">Perfil</div>
+                    </div>
+                    <span class="user-actions-btn" title="Opções">
+                        <i class="bi bi-chevron-down"></i>
+                    </span>
+                </div>
+                <div class="dropdown-menu dropdown-menu-end user-menu" aria-labelledby="userWidget">
+                    <div class="user-meta">
+                        <div class="fw-bold" id="userFullName">Carregando...</div>
+                        <div class="email" id="userEmail">-</div>
+                    </div>
+                    <a class="dropdown-item" href="/minha-conta">
+                        <i class="bi bi-person-gear me-2"></i> Minha conta
+                    </a>
+                    <a class="dropdown-item" href="/minha-conta?tab=preferencias">
+                        <i class="bi bi-gear me-2"></i> Preferências
+                    </a>
+                    <a class="dropdown-item" href="/relatorios/clientes">
+                        <i class="bi bi-bar-chart me-2"></i> Relatórios rápidos
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <button class="dropdown-item text-danger" type="button" onclick="logout()">
+                        <i class="bi bi-box-arrow-right me-2"></i> Sair
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Grid -->
+    <div class="dashboard-grid">
+        <!-- OS Pendentes -->
+        {% if view in ['principal', 'suporte', 'tecnico'] %}
+        <div class="col-os">
+            <div class="card-db">
+                <div class="card-title">Ordens de serviços pendentes</div>
+                <div class="os-stats">
+                    <div class="os-box">
+                        <div class="os-number blue" id="os-todas">4589</div>
+                        <div class="os-label">Todas</div>
+                    </div>
+                    <div class="os-box">
+                        <div class="os-number orange" id="os-minhas">1</div>
+                        <div class="os-label">Minhas</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Atendimentos por status -->
+        {% if view in ['principal', 'suporte'] %}
+        <div class="col-atendimentos">
+            <div class="card-db">
+                <div class="card-title">Atendimentos por status (6096)</div>
+                <div class="chart-h">
+                    <canvas id="atendimentosChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Status dos contratos -->
+        {% if view in ['principal', 'financeiro', 'tecnico'] %}
+        <div class="col-status-contratos">
+            <div class="card-db">
+                <div class="card-title">Status dos contratos (25660)</div>
+                <div class="row align-items-center">
+                    <div class="col-7">
+                        <ul class="status-list">
+                            <li class="status-item">
+                                <div class="status-info"><div class="status-dot" style="background: var(--success-color);"></div> Ativos:</div>
+                                <span class="status-value" id="contratos-ativos">9502</span>
+                            </li>
+                            <li class="status-item">
+                                <div class="status-info"><div class="status-dot" style="background: var(--info-color);"></div> Inativos:</div>
+                                <span class="status-value" id="contratos-inativos">15850</span>
+                            </li>
+                            <li class="status-item">
+                                <div class="status-info"><div class="status-dot" style="background: #00a3ff;"></div> Pré-contrato:</div>
+                                <span class="status-value" id="contratos-pre">68</span>
+                            </li>
+                            <li class="status-item">
+                                <div class="status-info"><div class="status-dot" style="background: var(--text-secondary);"></div> Desistiu:</div>
+                                <span class="status-value" id="contratos-desistiu">225</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-5">
+                        <div class="gauge-wrapper">
+                            <canvas id="contratosGauge"></canvas>
+                            <div class="gauge-center">
+                                <div class="gauge-value">37%</div>
+                                <div class="gauge-label">ATIVOS</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Contratos por status Donut -->
+        {% if view in ['principal', 'financeiro'] %}
+        <div class="col-contratos-donut">
+            <div class="card-db">
+                <div class="card-title">Contratos por status (9517)</div>
+                <div class="chart-m position-relative">
+                    <canvas id="contratosDonut"></canvas>
+                    <div class="gauge-center">
+                        <div class="gauge-value" style="font-size: 24px; color: var(--success-color);">81%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Clientes Donut -->
+        {% if view in ['principal', 'financeiro', 'vendas'] %}
+        <div class="col-clientes">
+            <div class="card-db">
+                <div class="card-title">Clientes (20266)</div>
+                <div class="chart-m position-relative">
+                    <canvas id="clientesDonut"></canvas>
+                    <div class="gauge-center">
+                        <div class="gauge-value" style="font-size: 24px; color: var(--success-color);">56%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Últimos 30 dias -->
+        {% if view in ['principal', 'financeiro', 'vendas'] %}
+        <div class="col-30-dias">
+            <div class="card-db">
+                <div class="card-title">Últimos 30 dias (187)</div>
+                <div class="chart-m">
+                    <div class="gauge-wrapper" style="height: 100%;">
+                        <canvas id="trintaDiasGauge"></canvas>
+                        <div class="gauge-center" style="top: 65%;">
+                            <div class="gauge-value" style="font-size: 24px; color: var(--success-color);">187</div>
+                            <div class="gauge-label">ATIVADOS</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Status Backup -->
+        {% if view in ['principal', 'suporte', 'tecnico'] %}
+        <div class="col-backup">
+            <div class="card-db">
+                <div class="card-title">Status Backup</div>
+                <div class="chart-m">
+                    <canvas id="backupChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- A receber -->
+        {% if view in ['principal', 'financeiro'] %}
+        <div class="col-financeiro">
+            <div class="card-db">
+                <div class="card-title">A receber com vencimento no mês atual</div>
+                <div class="chart-m">
+                    <div class="gauge-wrapper" style="height: 100%;">
+                        <canvas id="receberGauge"></canvas>
+                        <div class="gauge-center" style="top: 65%;">
+                            <div class="gauge-value" style="font-size: 20px;">R$ 45.8k</div>
+                            <div class="gauge-label">TOTAL</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Prospects -->
+        {% if view in ['principal', 'vendas'] %}
+        <div class="col-prospects">
+            <div class="card-db">
+                <div class="card-title">Prospects (2117)</div>
+                <div class="chart-m">
+                    <canvas id="prospectsChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Evolução Mensal -->
+        {% if view in ['principal', 'financeiro', 'vendas'] %}
+        <div class="col-evolucao">
+            <div class="card-db">
+                <div class="card-title">Evolução mensal dos contratos nos últimos 365 dias</div>
+                <div class="chart-l">
+                    <canvas id="evolucaoChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function switchDashboard(view) {
+        const url = new URL(window.location);
+        url.searchParams.set('view', view);
+        window.location.href = url.href;
+    }
+
+    (function applyDashboardDefault() {
+        const url = new URL(window.location);
+        const currentView = url.searchParams.get('view');
+        if (currentView) return;
+        const preferred = localStorage.getItem('dashboard_default');
+        if (preferred) {
+            url.searchParams.set('view', preferred);
+            window.location.replace(url.href);
+        }
+    })();
+
+    // Configuração global do Chart.js para Dark Mode
+    Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#adb5bd';
+    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.08)';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+
+    function initCharts() {
+        // 1. Atendimentos por status (Barra Horizontal)
+        const atendimentosCtx = document.getElementById('atendimentosChart');
+        if (atendimentosCtx) {
+            new Chart(atendimentosCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Novo', 'Em progresso', 'Pendente'],
+                    datasets: [{
+                        data: [3031, 2925, 140],
+                        backgroundColor: ['#2ecc71', '#3498db', '#e74c3c'],
+                        borderRadius: 4,
+                        barThickness: 20
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { display: true } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // 2. Contratos Gauge (Mini Donut)
+        const contratosGaugeCtx = document.getElementById('contratosGauge');
+        if (contratosGaugeCtx) {
+            new Chart(contratosGaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [37, 63],
+                        backgroundColor: ['#2ecc71', 'var(--card-bg)'],
+                        borderWidth: 0,
+                        circumference: 360,
+                        rotation: 0
+                    }]
+                },
+                options: {
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                }
+            });
+        }
+
+        // 3. Contratos por status (Donut)
+        const contratosDonutCtx = document.getElementById('contratosDonut');
+        if (contratosDonutCtx) {
+            new Chart(contratosDonutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ativos', 'Bloqueio manual', 'Bloqueio auto', 'Em atraso', 'Ag. assinatura', 'Desativados'],
+                    datasets: [{
+                        data: [7689, 25, 1740, 46, 2, 15],
+                        backgroundColor: ['#2ecc71', '#e74c3c', '#e67e22', '#f1c40f', '#3498db', '#95a5a6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '75%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'right', 
+                            labels: { 
+                                boxWidth: 8, 
+                                padding: 8, 
+                                font: { size: 9 },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            } 
+                        }
+                    }
+                }
+            });
+        }
+
+        // 4. Clientes (Donut com % no centro)
+        const clientesDonutCtx = document.getElementById('clientesDonut');
+        if (clientesDonutCtx) {
+            new Chart(clientesDonutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ativos', 'Inativos'],
+                    datasets: [{
+                        data: [11263, 9003],
+                        backgroundColor: ['#2ecc71', '#1c2833'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '75%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'right', 
+                            labels: { 
+                                boxWidth: 8, 
+                                font: { size: 9 },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            } 
+                        }
+                    }
+                }
+            });
+        }
+
+        // 5. Últimos 30 dias (Semi-circle)
+        const trintaDiasGaugeCtx = document.getElementById('trintaDiasGauge');
+        if (trintaDiasGaugeCtx) {
+            new Chart(trintaDiasGaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ativados', 'Restante'],
+                    datasets: [{
+                        data: [187, 87],
+                        backgroundColor: ['#2ecc71', '#1c2833'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    circumference: 180,
+                    rotation: -90,
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // 6. Backup (Barras)
+        const backupCtx = document.getElementById('backupChart');
+        if (backupCtx) {
+            new Chart(backupCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['29/01', '30/01', '31/01'],
+                    datasets: [
+                        { label: 'Sucesso', data: [1, 1, 1], backgroundColor: '#2ecc71' },
+                        { label: 'Falha', data: [0, 0, 0.2], backgroundColor: '#e74c3c' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { stepSize: 1 } }
+                    }
+                }
+            });
+        }
+
+        // 7. Financeiro - A receber (Semi-circle)
+        const receberGaugeCtx = document.getElementById('receberGauge');
+        if (receberGaugeCtx) {
+            new Chart(receberGaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Abertos', 'Cancelados', 'Baixados', 'Renegociados'],
+                    datasets: [{
+                        data: [539, 194, 46, 12],
+                        backgroundColor: ['#00a3ff', '#1c2833', '#2ecc71', '#f1c40f'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    circumference: 180,
+                    rotation: -90,
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                boxWidth: 8, 
+                                font: { size: 9 },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            } 
+                        } 
+                    }
+                }
+            });
+        }
+
+        // 8. Prospects (Funnel - usando bar chart customizado)
+        const prospectsCtx = document.getElementById('prospectsChart');
+        if (prospectsCtx) {
+            new Chart(prospectsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Novos', 'Sondagem', 'Apresentação', 'Negociando'],
+                    datasets: [{
+                        data: [2020, 1500, 800, 400],
+                        backgroundColor: ['#3498db', '#9b59b6', '#f1c40f', '#e67e22'],
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // 9. Evolução Mensal (Line chart complexo)
+        const evolucaoCtx = document.getElementById('evolucaoChart');
+        if (evolucaoCtx) {
+            new Chart(evolucaoCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+                    datasets: [
+                        {
+                            label: 'Ativados',
+                            data: [287, 391, 457, 448, 204, 275, 301, 250, 234],
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Churn',
+                            data: [-185, -93, -77, -121, -119, -148, -11, -33],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initCharts);
+
+    function applyUserWidgetPosition(widget) {
+        const saved = localStorage.getItem('dashboard_user_widget_pos');
+        if (!saved) return;
+        try {
+            const pos = JSON.parse(saved);
+            if (typeof pos.x === 'number' && typeof pos.y === 'number') {
+                widget.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+            }
+        } catch (error) {
+            console.warn('Posição do usuário inválida:', error);
+        }
+    }
+
+    function setupUserWidgetDrag(widget) {
+        let isDragging = false;
+        let isPointerDown = false;
+        let startX = 0;
+        let startY = 0;
+        let baseX = 0;
+        let baseY = 0;
+        const dragThreshold = 4;
+
+        const readTransform = () => {
+            const match = widget.style.transform.match(/translate\\(([-\\d.]+)px,\\s*([-\\d.]+)px\\)/);
+            if (match) {
+                return { x: parseFloat(match[1]), y: parseFloat(match[2]) };
+            }
+            return { x: 0, y: 0 };
+        };
+
+        const onMouseDown = (event) => {
+            if (event.target.closest('.user-actions-btn')) return;
+            isPointerDown = true;
+            isDragging = false;
+            const base = readTransform();
+            baseX = base.x;
+            baseY = base.y;
+            startX = event.clientX;
+            startY = event.clientY;
+        };
+
+        const onMouseMove = (event) => {
+            if (!isPointerDown) return;
+            const dx = event.clientX - startX;
+            const dy = event.clientY - startY;
+            if (!isDragging && Math.hypot(dx, dy) >= dragThreshold) {
+                isDragging = true;
+                widget.classList.add('dragging');
+            }
+            if (!isDragging) return;
+            widget.style.transform = `translate(${baseX + dx}px, ${baseY + dy}px)`;
+        };
+
+        const onMouseUp = () => {
+            if (!isPointerDown) return;
+            isPointerDown = false;
+            if (!isDragging) return;
+            isDragging = false;
+            widget.classList.remove('dragging');
+            const current = readTransform();
+            localStorage.setItem('dashboard_user_widget_pos', JSON.stringify(current));
+        };
+
+        widget.addEventListener('mousedown', onMouseDown);
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+    }
+
+    async function hydrateUserWidget() {
+        const widget = document.getElementById('userWidget');
+        if (!widget) return;
+
+        applyUserWidgetPosition(widget);
+        setupUserWidgetDrag(widget);
+
+        try {
+            const response = await fetch('/api/usuarios/me');
+            if (!response.ok) return;
+            const user = await response.json();
+
+            const name = user.nome_completo || user.username || 'Usuário';
+            const email = user.email || '-';
+            const role = (user.role || 'Perfil').toString();
+            const initials = name
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(part => part[0])
+                .join('')
+                .toUpperCase();
+
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userRole').textContent = role;
+            document.getElementById('userFullName').textContent = name;
+            document.getElementById('userEmail').textContent = email;
+            const avatar = document.getElementById('userAvatar');
+            if (user.foto_url) {
+                avatar.textContent = '';
+                avatar.style.backgroundImage = `url(${user.foto_url})`;
+                avatar.style.backgroundSize = 'cover';
+                avatar.style.backgroundPosition = 'center';
+            } else {
+                avatar.style.backgroundImage = '';
+                avatar.textContent = initials || 'U';
+            }
+        } catch (error) {
+            console.error('Erro ao carregar dados do usuário:', error);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', hydrateUserWidget);
+</script>
+{% endblock %}

@@ -1,0 +1,211 @@
+{% extends "layout.html" %}
+
+{% block title %}Relatórios de Contratos - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .stat-card h5 { 
+        font-size: 0.85rem; 
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 15px; 
+        color: var(--text-secondary);
+    }
+    
+    .stat-card .value { 
+        font-size: 32px; 
+        font-weight: 800; 
+        color: var(--text-main);
+    }
+    
+    .stat-card i {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .stat-card.total i { color: var(--primary-color); }
+    .stat-card.pendentes i { color: var(--warning-color); }
+    .stat-card.assinados i { color: var(--success-color); }
+    .stat-card.cancelados i { color: var(--danger-color); }
+    
+    .chart-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .chart-container h5 {
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--text-main);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-bar-chart"></i> Relatórios de Contratos</h1>
+            <p class="text-muted mb-0">Estatísticas e relatórios dos contratos</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="exportarPDF()">
+                <i class="bi bi-file-pdf"></i> Exportar PDF
+            </button>
+            <button class="btn btn-outline-success" onclick="exportarCSV()">
+                <i class="bi bi-file-excel"></i> Exportar CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card total">
+                <h5><i class="bi bi-file-earmark-text"></i> Total de Contratos</h5>
+                <div class="value">{{ stats.total or 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card pendentes">
+                <h5><i class="bi bi-clock"></i> Aguardando Assinatura</h5>
+                <div class="value">{{ stats.aguardando or 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card assinados">
+                <h5><i class="bi bi-check-circle"></i> Assinados</h5>
+                <div class="value">{{ stats.assinado or 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card liberados">
+                <h5><i class="bi bi-check-circle"></i> Liberados</h5>
+                <div class="value">{{ stats.liberado or 0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos e Tabelas -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h5><i class="bi bi-pie-chart"></i> Distribuição por Status</h5>
+                <div id="graficoPizza" style="height: 250px; display: flex; align-items: center; justify-content: center;">
+                    <canvas id="pizzaChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h5><i class="bi bi-bar-chart"></i> Contratos por Mês</h5>
+                <div id="graficoBarras" style="height: 250px;">
+                    <canvas id="barrasChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Contratos Recentes -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-list"></i> Contratos Recentes</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Tipo</th>
+                            <th>Valor</th>
+                            <th>Status</th>
+                            <th>Data Criação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if contratos_recentes %}
+                            {% for contrato in contratos_recentes %}
+                            <tr>
+                                <td>{{ contrato.id }}</td>
+                                <td>{{ contrato.cliente_nome }}</td>
+                                <td>{{ contrato.tipo_contrato }}</td>
+                                <td>R$ {{ "%.2f"|format(contrato.valor_contrato or 0) }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if contrato.status_assinatura == 'assinado' else 'warning' if contrato.status_assinatura == 'pendente' else 'danger' }}">
+                                        {{ contrato.status_assinatura }}
+                                    </span>
+                                </td>
+                                <td>{{ contrato.data_criacao.strftime('%d/%m/%Y') }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    Nenhum contrato encontrado
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Gráfico de Pizza
+    const pizzaCtx = document.getElementById('pizzaChart').getContext('2d');
+    new Chart(pizzaCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Aguardando', 'Assinado', 'Liberado'],
+            datasets: [{
+                data: [
+                    {{ stats.aguardando or 0 }},
+                    {{ stats.assinado or 0 }},
+                    {{ stats.liberado or 0 }}
+                ],
+                backgroundColor: ['#f5576c', '#00f2fe', '#38f9d7']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    function exportarPDF() {
+        showToast('Gerando PDF...', 'info');
+        window.open('/contratos/exportar/pdf', '_blank');
+    }
+
+    function exportarCSV() {
+        window.location.href = '/contratos/exportar/csv';
+    }
+</script>
+{% endblock %}

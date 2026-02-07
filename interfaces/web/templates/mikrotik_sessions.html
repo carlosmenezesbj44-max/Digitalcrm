@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{% block title %}Sessões Mikrotik - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-eye"></i> Sessões Mikrotik</h1>
+            <p class="text-muted mb-0">Visualize as sessões ativas do equipamento Mikrotik</p>
+        </div>
+        <button class="btn btn-outline-secondary" onclick="carregarSessoes()">
+            <i class="bi bi-arrow-clockwise"></i> Atualizar
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="modal-header border-bottom-0 pt-4 px-4">
+            <h5 class="modal-title fw-bold"><i class="bi bi-eye"></i> Sessões Ativas</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table" id="tabelaSessoes">
+                    <thead>
+                        <tr>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Usuário</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">IP</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Mac Address</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Uptime</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Sessão</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoSessoes" class="border-top-0">
+                        <tr><td colspan="6" class="text-center py-4" style="color: var(--text-secondary);">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', carregarSessoes);
+
+    async function carregarSessoes() {
+        try {
+            const token = localStorage.getItem('access_token');
+            const response = await fetch('/api/v1/mikrotik/sessions', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const sessoes = await response.json();
+                renderizarSessoes(sessoes);
+            } else {
+                document.getElementById('corpoSessoes').innerHTML = 
+                    '<tr><td colspan="6" class="text-center py-4" style="color: var(--text-secondary);">Nenhuma sessão ativa</td></tr>';
+            }
+        } catch (error) {
+            document.getElementById('corpoSessoes').innerHTML = 
+                '<tr><td colspan="6" class="text-center py-4 text-danger">Erro ao carregar</td></tr>';
+        }
+    }
+
+    function renderizarSessoes(sessoes) {
+        const corpo = document.getElementById('corpoSessoes');
+        corpo.innerHTML = '';
+
+        if (sessoes.length === 0) {
+            corpo.innerHTML = '<tr><td colspan="6" class="text-center py-4" style="color: var(--text-secondary);">Nenhuma sessão ativa</td></tr>';
+            return;
+        }
+
+        sessoes.forEach(s => {
+            corpo.innerHTML += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.username}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.ip}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.mac || '-'}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.uptime}</td>
+                    <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">${s.type}</td>
+                    <td class="py-3">
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="desconectarSessao('${s.id}')" title="Desconectar">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    async function desconectarSessao(id) {
+        if (!confirm('Tem certeza que deseja desconectar esta sessão?')) return;
+        showLoading('Desconectando...');
+        try {
+            const token = localStorage.getItem('access_token');
+            await fetch(`/api/v1/mikrotik/sessions/${id}/disconnect`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            showToast('Sessão desconectada', 'success');
+            await carregarSessoes();
+        } catch (error) {
+            showToast('Erro ao desconectar', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+</script>
+{% endblock %}

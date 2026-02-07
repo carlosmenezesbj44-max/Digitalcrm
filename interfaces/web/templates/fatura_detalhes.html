@@ -1,0 +1,195 @@
+{% extends "layout.html" %}
+
+{% block title %}Detalhes da Fatura #{{ fatura.id }} - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0" style="color: var(--text-main); font-weight: 700;">
+                <i class="bi bi-receipt"></i> Detalhes da Fatura #{{ fatura.id }}
+            </h1>
+            <p style="color: var(--text-secondary); opacity: 0.8;" class="mb-0">Informações detalhadas e ações da fatura</p>
+        </div>
+        <a href="/faturas" class="btn btn-outline-secondary border-secondary shadow-sm">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Resumo da Fatura -->
+            <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                <div class="modal-header border-bottom-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-info-circle"></i> Resumo da Fatura</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">ID:</strong> {{ fatura.id }}</p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Número:</strong> {{ fatura.numero_fatura }}</p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Cliente:</strong> {{ fatura.cliente_nome }}</p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Status:</strong>
+                                {% if fatura.status == 'pendente' %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" style="font-weight: 500;">Pendente</span>
+                                {% elif fatura.status == 'pago' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-weight: 500;">Pago</span>
+                                {% elif fatura.status == 'atrasado' %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-weight: 500;">Atrasado</span>
+                                {% elif fatura.status == 'cancelado' %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style="font-weight: 500;">Cancelado</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Data Emissão:</strong> {{ fatura.data_emissao.strftime("%d/%m/%Y") if fatura.data_emissao else "N/A" }}</p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Data Vencimento:</strong> {{ fatura.data_vencimento.strftime("%d/%m/%Y") if fatura.data_vencimento else "N/A" }}</p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Valor Total:</strong> <span class="fw-bold text-primary">R$ {{ "%.2f"|format(fatura.valor_total) if fatura.valor_total else "0.00" }}</span></p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Valor Pago:</strong> <span class="fw-bold text-success">R$ {{ "%.2f"|format(fatura.valor_pago) if fatura.valor_pago else "0.00" }}</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações do Cliente -->
+            <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                <div class="modal-header border-bottom-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-person"></i> Informações do Cliente</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Nome:</strong> {{ fatura.cliente_nome }}</p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">CPF/CNPJ:</strong> {{ fatura.cliente_cpf_cnpj or "N/A" }}</p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Email:</strong> {{ fatura.cliente_email or "N/A" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Telefone:</strong> {{ fatura.cliente_telefone or "N/A" }}</p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Endereço:</strong> {{ fatura.cliente_endereco or "N/A" }}</p>
+                            <p style="color: var(--text-main);"><strong style="color: var(--text-secondary);">Plano:</strong> {{ fatura.plano_nome or "N/A" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Histórico de Pagamentos -->
+            <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                <div class="modal-header border-bottom-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-clock-history"></i> Histórico de Pagamentos</h5>
+                </div>
+                <div class="card-body p-4">
+                    {% if fatura.pagamentos %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr style="border-bottom: 2px solid var(--border-color);">
+                                        <th style="color: var(--text-main);">Data</th>
+                                        <th style="color: var(--text-main);">Valor</th>
+                                        <th style="color: var(--text-main);">Método</th>
+                                        <th style="color: var(--text-main);">Referência</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="border-top-0">
+                                    {% for pagamento in fatura.pagamentos %}
+                                        <tr>
+                                            <td style="color: var(--text-main);">{{ pagamento.data_pagamento.strftime("%d/%m/%Y") if pagamento.data_pagamento else "N/A" }}</td>
+                                            <td style="color: var(--text-main);">R$ {{ "%.2f"|format(pagamento.valor_pago) if pagamento.valor_pago else "0.00" }}</td>
+                                            <td style="color: var(--text-main);">{{ pagamento.metodo_pagamento or "N/A" }}</td>
+                                            <td style="color: var(--text-main);">{{ pagamento.referencia or "N/A" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p style="color: var(--text-secondary);" class="mb-0">Nenhum pagamento registrado para esta fatura.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm" style="background: var(--card-bg);">
+                <div class="modal-header border-bottom-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-gear"></i> Ações</h5>
+                </div>
+                <div class="card-body p-4">
+                    <button class="btn btn-outline-primary btn-sm w-100 mb-3 border-primary border-opacity-25" onclick="imprimirFatura({{ fatura.id }})">
+                        <i class="bi bi-printer"></i> Imprimir Fatura
+                    </button>
+                    <button class="btn btn-outline-info btn-sm w-100 mb-3 border-info border-opacity-25" onclick="enviarPorEmail({{ fatura.id }})">
+                        <i class="bi bi-envelope"></i> Enviar por Email
+                    </button>
+                    {% if fatura.status == 'pendente' %}
+                        <button class="btn btn-success btn-sm w-100 mb-3 border-0 shadow-sm" onclick="marcarComoPaga({{ fatura.id }})">
+                            <i class="bi bi-check-circle"></i> Marcar como Paga
+                        </button>
+                    {% endif %}
+                    <button class="btn btn-primary btn-sm w-100 border-0 shadow-sm" onclick="registrarPagamento({{ fatura.id }})">
+                        <i class="bi bi-cash"></i> Registrar Pagamento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function imprimirFatura(faturaId) {
+        window.open(`/api/v1/faturamento/faturas/${faturaId}/imprimir`, '_blank');
+    }
+
+    async function enviarPorEmail(faturaId) {
+        if (confirm('Deseja enviar esta fatura por email para o cliente?')) {
+            showLoading('Enviando email...');
+            try {
+                const response = await fetch(`/api/v1/faturamento/faturas/${faturaId}/enviar-email`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                if (response.ok) {
+                    showToast('Fatura enviada por email com sucesso!', 'success');
+                } else {
+                    showToast('Erro ao enviar fatura por email.', 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao enviar fatura por email.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+    }
+
+    async function marcarComoPaga(faturaId) {
+        if (confirm('Deseja marcar esta fatura como paga?')) {
+            showLoading('Atualizando status...');
+            try {
+                const response = await fetch(`/api/v1/faturamento/faturas/${faturaId}/marcar-paga`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                if (response.ok) {
+                    showToast('Fatura marcada como paga!', 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('Erro ao marcar fatura como paga.', 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao marcar fatura como paga.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+    }
+
+    function registrarPagamento(faturaId) {
+        window.location.href = `/faturas?abrirPagamento=${faturaId}`;
+    }
+</script>
+{% endblock %}

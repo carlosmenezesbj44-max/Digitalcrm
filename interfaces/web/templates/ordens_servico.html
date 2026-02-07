@@ -1,0 +1,149 @@
+{% extends "layout.html" %}
+
+{% block title %}Ordens de Serviço - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0" style="color: var(--text-main); font-weight: 700;"><i class="bi bi-clipboard-check"></i> Ordens de Serviço</h1>
+            <p style="color: var(--text-secondary); opacity: 0.8;" class="mb-0">Gerencie as ordens de serviço</p>
+        </div>
+        <a href="/ordens-servico/nova" class="btn btn-primary border-0 shadow-sm px-4">
+            <i class="bi bi-plus-circle"></i> Nova Ordem
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger border-0 shadow-sm" role="alert" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c;">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Filtros -->
+    <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold" style="color: var(--text-main);">Cliente</label>
+                    <select class="form-select border-secondary bg-transparent text-white" id="filtroCliente">
+                        <option value="" class="bg-dark">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold" style="color: var(--text-main);">Status</label>
+                    <select class="form-select border-secondary bg-transparent text-white" id="filtroStatus">
+                        <option value="" class="bg-dark">Todos</option>
+                        <option value="pendente" class="bg-dark">Pendente</option>
+                        <option value="em_andamento" class="bg-dark">Em Andamento</option>
+                        <option value="concluido" class="bg-dark">Concluído</option>
+                        <option value="cancelado" class="bg-dark">Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold" style="color: var(--text-main);">Técnico</label>
+                    <select class="form-select border-secondary bg-transparent text-white" id="filtroTecnico">
+                        <option value="" class="bg-dark">Todos</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-primary w-100 border-0 shadow-sm" onclick="filtrarOrdens()">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela -->
+    <div class="card border-0 shadow-sm" style="background: var(--card-bg);">
+        <div class="modal-header border-bottom-0 pt-4 px-4">
+            <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-clipboard-check"></i> Ordens de Serviço</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table" id="tabelaOrdens">
+                    <thead>
+                        <tr>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">ID</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Cliente</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Serviço</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Técnico</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Data</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoTabela" class="border-top-0">
+                        {% if ordens %}
+                            {% for ordem in ordens %}
+                            <tr style="border-bottom: 1px solid var(--border-color);">
+                                <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">{{ ordem.id }}</td>
+                                <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">{{ ordem.cliente_nome }}</td>
+                                <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">{{ ordem.servico }}</td>
+                                <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">{{ ordem.tecnico_nome }}</td>
+                                <td class="py-3">
+                                    <span class="badge bg-{{ 'success' if ordem.status == 'concluido' else 'warning' if ordem.status == 'em_andamento' else 'secondary' }}" style="font-weight: 500;">
+                                        {{ ordem.status }}
+                                    </span>
+                                </td>
+                                <td class="py-3" style="color: var(--text-main); font-size: 0.9rem;">{{ ordem.data_criacao.strftime('%d/%m/%Y') }}</td>
+                                <td class="py-3">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/ordens-servico/{{ ordem.id }}" class="btn btn-outline-info border-0" title="Ver">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a href="/ordens-servico/{{ ordem.id }}/imprimir" target="_blank" class="btn btn-outline-secondary border-0" title="Imprimir">
+                                            <i class="bi bi-printer"></i>
+                                        </a>
+                                        <a href="/ordens-servico/{{ ordem.id }}/editar" class="btn btn-outline-warning border-0" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button class="btn btn-outline-danger border-0" onclick="excluirOrdem({{ ordem.id }})" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5" style="color: var(--text-secondary);">
+                                    <i class="bi bi-clipboard-check display-4 mb-3" style="opacity: 0.5;"></i>
+                                    <br>Nenhuma ordem de serviço encontrada
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function excluirOrdem(id) {
+        if (!confirm('Tem certeza que deseja excluir esta ordem de serviço?')) return;
+        showLoading('Excluindo...');
+        fetch(`/ordens-servico/${id}/excluir`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Ordem excluída!', 'success');
+                    location.reload();
+                } else {
+                    showToast(data.message || 'Erro', 'error');
+                }
+            })
+            .catch(() => showToast('Erro ao excluir', 'error'))
+            .finally(() => hideLoading());
+    }
+
+    function filtrarOrdens() {
+        showToast('Funcionalidade em desenvolvimento', 'info');
+    }
+</script>
+{% endblock %}

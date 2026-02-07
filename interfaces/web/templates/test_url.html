@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test URL</title>
+</head>
+<body>
+    <h1>Teste de URL</h1>
+    <p>URL Atual: <span id="url"></span></p>
+    <p>Pathname: <span id="pathname"></span></p>
+    <p>Hash: <span id="hash"></span></p>
+    <p>Token no localStorage: <span id="token"></span></p>
+    
+    <hr>
+    
+    <h2>Links para Teste</h2>
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="/login">Login</a></li>
+        <li><a href="/clientes">Clientes</a></li>
+    </ul>
+
+    <script>
+        document.getElementById('url').textContent = window.location.href;
+        document.getElementById('pathname').textContent = window.location.pathname;
+        document.getElementById('hash').textContent = window.location.hash || 'Sem hash';
+        document.getElementById('token').textContent = localStorage.getItem('access_token') || 'Sem token';
+        
+        console.log('URL Completa:', window.location.href);
+        console.log('Pathname:', window.location.pathname);
+        console.log('Hash:', window.location.hash);
+        console.log('Token:', localStorage.getItem('access_token'));
+    </script>
+</body>
+</html>

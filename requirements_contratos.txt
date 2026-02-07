@@ -1,0 +1,14 @@
+# Dependências para o módulo de Contratos v2
+
+# Geração de PDF
+reportlab==4.0.9
+
+# Já deve estar no projeto (validar)
+fastapi>=0.104.0
+sqlalchemy>=2.0.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+
+# Opcional: para assinatura digital real no futuro
+# clicksign-sdk>=2.0.0
+# docusign-esign-python-client>=3.0.0

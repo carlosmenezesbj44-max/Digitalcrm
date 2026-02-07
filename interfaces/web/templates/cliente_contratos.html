@@ -1,0 +1,147 @@
+{% extends "layout.html" %}
+
+{% block title %}Meus Contratos - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .contrato {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .status-aguardando { border-left: 5px solid var(--warning-color); }
+    .status-assinado { border-left: 5px solid var(--info-color); }
+    .status-liberado { border-left: 5px solid var(--success-color); }
+    .assinar-btn {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .assinar-btn:hover {
+        background-color: var(--primary-dark);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mb-4" style="color: var(--text-main);">Meus Contratos</h1>
+
+    {% if contratos %}
+        {% for contrato in contratos %}
+        <div class="contrato status-{{ contrato.status_assinatura.value }}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h3 style="color: var(--text-main);">{{ contrato.titulo }}</h3>
+                    <p class="mb-2" style="color: var(--text-secondary);">{{ contrato.descricao }}</p>
+                    <p class="mb-1" style="color: var(--text-main);"><strong>Status:</strong>
+                        {% if contrato.status_assinatura.value == 'aguardando' %}
+                            <span class="badge bg-warning text-dark">Aguardando Assinatura</span>
+                        {% elif contrato.status_assinatura.value == 'assinado' %}
+                            <span class="badge bg-info text-dark">Assinado</span>
+                        {% elif contrato.status_assinatura.value == 'liberado' %}
+                            <span class="badge bg-success">Liberado</span>
+                        {% endif %}
+                    </p>
+                    <p class="mb-1" style="color: var(--text-secondary);"><small><strong>Data Criação:</strong> {{ contrato.data_criacao.strftime('%d/%m/%Y %H:%M') }}</small></p>
+                    {% if contrato.data_assinatura %}
+                    <p class="mb-0" style="color: var(--text-secondary);"><small><strong>Data Assinatura:</strong> {{ contrato.data_assinatura.strftime('%d/%m/%Y %H:%M') }}</small></p>
+                    {% endif %}
+                </div>
+                <div class="d-flex gap-2">
+                    {% if contrato.status_assinatura.value == 'aguardando' %}
+                    <button class="assinar-btn" onclick="assinarContrato({{ contrato.id }})">
+                        <i class="bi bi-pen"></i> Assinar Digitalmente
+                    </button>
+                    {% endif %}
+                    <button class="btn btn-outline-danger" onclick="excluirContrato({{ contrato.id }})" title="Excluir">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info border-0 shadow-sm" style="background: rgba(52, 152, 219, 0.1); color: var(--text-main);">
+            <i class="bi bi-info-circle"></i> Você não possui contratos no momento.
+        </div>
+    {% endif %}
+
+    {% if error %}
+         <div class="alert alert-danger mt-3 border-0 shadow-sm" style="background: rgba(231, 76, 60, 0.1); color: var(--text-main);">
+             <i class="bi bi-exclamation-triangle"></i> <strong>Erro:</strong> {{ error }}
+         </div>
+     {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function assinarContrato(contratoId) {
+        // Simulação de assinatura digital
+        const assinaturaBase64 = prompt('Digite sua assinatura digital (base64):');
+        if (!assinaturaBase64) return;
+
+        const hashDocumento = prompt('Digite o hash do documento:');
+        if (!hashDocumento) return;
+
+        try {
+            const response = await fetch(`/api/v1/contratos/${contratoId}/assinar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('access_token')
+                },
+                body: JSON.stringify({
+                    assinatura_base64: assinaturaBase64,
+                    hash_documento: hashDocumento
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('Contrato assinado com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro: ' + result.message);
+            }
+        } catch (error) {
+            alert('Erro ao assinar contrato: ' + error.message);
+        }
+    }
+
+    async function excluirContrato(id) {
+        if (!confirm('Tem certeza que deseja excluir este contrato? Esta ação não pode ser desfeita.')) return;
+        
+        try {
+            const response = await fetch(`/api/v1/contratos/${id}`, { 
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')
+                }
+            });
+            
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.detail || 'Erro ao excluir contrato');
+            }
+            
+            alert('Contrato excluído com sucesso!');
+            location.reload();
+        } catch (error) {
+            console.error('Erro ao excluir:', error);
+            alert(error.message || 'Erro ao excluir contrato');
+        }
+    }
+</script>
+{% endblock %}

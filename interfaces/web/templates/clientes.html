@@ -1,0 +1,432 @@
+{% extends "layout.html" %}
+
+{% block title %}Clientes - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* CSS específico para página de clientes */
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        background-color: var(--primary-color);
+        color: white;
+        font-size: 14px;
+    }
+    
+    #viewCards .avatar-circle {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    /* Garantir que a barra de busca não suma */
+    #searchContainer,
+    #searchContainer * {
+        transition: none !important;
+    }
+    
+    /* Prevenir comportamentos automáticos do Chrome */
+    input[type="text"]#inputBusca {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+    
+    /* Corrigir overflow do modal - apenas para modais */
+    #modalCadastroCliente {
+        overflow-x: hidden;
+    }
+    
+    #modalCadastroCliente .modal-dialog {
+        max-width: 90vw;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    #modalCadastroCliente .modal-content {
+        overflow: visible;
+        border: 0;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    #modalCadastroCliente .modal-header {
+        border-bottom: 0;
+    }
+
+    #modalCadastroCliente .modal-footer {
+        border-top: 0;
+    }
+
+    #modalCadastroCliente .modal-body {
+        overflow-x: visible;
+        overflow-y: auto;
+        max-height: calc(100vh - 200px);
+    }
+    
+    body.modal-open {
+        overflow-y: auto !important;
+        padding-right: 0 !important;
+    }
+    
+    /* Garantir que a barra de busca seja sempre visível */
+    #searchContainer,
+    #searchContainer .input-group {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    /* Garantir que o input e botão da busca sejam visíveis */
+    #searchContainer .input-group-text,
+    #searchContainer input,
+    #searchContainer button {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    /* Evitar qualquer transformação ou transição que oculte */
+    #searchContainer,
+    #searchContainer * {
+        transform: none !important;
+        transition: none !important;
+        animation: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0" style="color: var(--text-main); font-weight: 700;"><i class="bi bi-people"></i> Clientes</h1>
+            <p style="color: var(--text-secondary); opacity: 0.8;" class="mb-0">Gerencie seus clientes cadastrados</p>
+        </div>
+        <button type="button" class="btn btn-primary border-0 shadow-sm px-4" data-bs-toggle="modal" data-bs-target="#modalCadastroCliente">
+            <i class="bi bi-plus-circle"></i> Novo Cliente
+        </button>
+    </div>
+
+    <!-- Alertas -->
+    {% if error %}
+    <div class="alert alert-danger bg-opacity-10 border-danger border-opacity-25 text-danger" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Filtros e Busca -->
+    <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+        <div class="card-body p-4">
+            <form action="/clientes" method="GET" id="formBusca">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="input-group" id="searchContainer">
+                            <select name="field" class="form-select border-secondary bg-transparent text-white" style="max-width: 150px;">
+                                <option value="todos" class="bg-dark" {% if field == 'todos' %}selected{% endif %}>Todos</option>
+                                <option value="endereco" class="bg-dark" {% if field == 'endereco' %}selected{% endif %}>Endereço</option>
+                                <option value="email" class="bg-dark" {% if field == 'email' %}selected{% endif %}>Email</option>
+                                <option value="nome" class="bg-dark" {% if field == 'nome' %}selected{% endif %}>Nome</option>
+                                <option value="cpf/cnpj" class="bg-dark" {% if field == 'cpf/cnpj' %}selected{% endif %}>CPF/CNPJ</option>
+                                <option value="login" class="bg-dark" {% if field == 'login' %}selected{% endif %}>Login</option>
+                            </select>
+                            <input type="text" class="form-control border-secondary bg-transparent text-white" id="inputBusca" placeholder="Buscar clientes..." autocomplete="off" name="q" value="{{ search or '' }}">
+                            <button class="btn btn-primary px-4 border-0 shadow-sm" type="submit" id="btnBuscar">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                            {% if search %}
+                            <a href="/clientes" class="btn btn-outline-secondary ms-2">Limpar</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select border-secondary bg-transparent text-white" name="status" id="filtroStatus" onchange="this.form.submit()">
+                            <option value="" class="bg-dark">Todos os Status</option>
+                            <option value="nenhum" class="bg-dark" {% if status == 'nenhum' %}selected{% endif %}>Sem Contrato</option>
+                            <option value="aguardando_assinatura" class="bg-dark" {% if status == 'aguardando_assinatura' %}selected{% endif %}>Aguardando Assinatura</option>
+                            <option value="assinado" class="bg-dark" {% if status == 'assinado' %}selected{% endif %}>Assinado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1 border-secondary" id="btnExportar">
+                                <i class="bi bi-download"></i> Exportar
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1 border-secondary" id="btnToggleView">
+                                <i class="bi bi-grid"></i> Cards
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Visualização em Tabela -->
+    <div id="viewTable" class="table-responsive">
+        <table class="table mb-0" id="tabelaClientes">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th class="px-4 py-3 d-none d-md-table-cell" style="color: var(--text-main);">ID</th>
+                    <th class="py-3" style="color: var(--text-main);">Nome</th>
+                    <th class="py-3 d-none d-lg-table-cell" style="color: var(--text-main);">Email</th>
+                    <th class="py-3 d-none d-lg-table-cell" style="color: var(--text-main);">Telefone</th>
+                    <th class="py-3 d-none d-xl-table-cell" style="color: var(--text-main);">CPF</th>
+                    <th class="py-3" style="color: var(--text-main);">Status</th>
+                    <th class="py-3 d-none d-md-table-cell" style="color: var(--text-main);">Cadastro</th>
+                    <th class="px-4 py-3 text-end" style="color: var(--text-main);">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="corpoTabela">
+                {% if clientes %}
+                    {% for cliente in clientes %}
+                    <tr class="linha-cliente" style="border-bottom: 1px solid var(--border-color);">
+                        <td class="px-4 py-3 d-none d-md-table-cell" style="color: var(--text-main); font-weight: 500;">{{ cliente.id }}</td>
+                        <td class="py-3">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-2" style="background-color: var(--primary-color);">{{ cliente.nome[0].upper() }}</div>
+                                <div>
+                                    <div class="fw-bold" style="color: var(--text-main);">{{ cliente.nome }}</div>
+                                    <small style="color: var(--text-secondary); opacity: 0.7;" class="d-block d-md-none">{{ cliente.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3 d-none d-lg-table-cell" style="color: var(--text-main);">{{ cliente.email }}</td>
+                        <td class="py-3 d-none d-lg-table-cell" style="color: var(--text-main);">{{ cliente.telefone }}</td>
+                        <td class="py-3 d-none d-xl-table-cell" style="color: var(--text-secondary);">{{ cliente.cpf }}</td>
+                        <td class="py-3">
+                            {% if cliente.status_contrato == "assinado" %}
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-weight: 500;">Assinado</span>
+                            {% elif cliente.status_contrato == "aguardando_assinatura" %}
+                                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" style="font-weight: 500;">Pendente</span>
+                            {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style="font-weight: 500;">Sem Contrato</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 d-none d-md-table-cell" style="color: var(--text-secondary);">{{ cliente.data_cadastro.strftime("%d/%m/%Y") if cliente.data_cadastro else "N/A" }}</td>
+                        <td class="px-4 py-3 text-end">
+                            <div class="btn-group" role="group">
+                                <a href="tel:{{ cliente.telefone }}" class="btn btn-sm btn-outline-secondary border-secondary shadow-sm" title="Ligar" style="color: var(--text-main);">
+                                    <i class="bi bi-telephone"></i>
+                                </a>
+                                <a href="mailto:{{ cliente.email }}" class="btn btn-sm btn-outline-secondary border-secondary shadow-sm ms-1" title="Email" style="color: var(--text-main);">
+                                    <i class="bi bi-envelope"></i>
+                                </a>
+                                <a href="/cliente/contratos?cliente_id={{ cliente.id }}" class="btn btn-sm btn-outline-secondary border-secondary shadow-sm ms-1" title="Contratos" style="color: var(--text-main);">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </a>
+                                <div class="dropdown ms-1">
+                                    <button class="btn btn-sm btn-outline-secondary border-secondary shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" style="color: var(--text-main);">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg" style="background: var(--card-bg);">
+                                        <li><a class="dropdown-item" href="/clientes/{{ cliente.id }}/editar" style="color: var(--text-main);"><i class="bi bi-pencil"></i> Editar</a></li>
+                                        <li><a class="dropdown-item" href="/clientes/{{ cliente.id }}/detalhes" style="color: var(--text-main);"><i class="bi bi-eye"></i> Detalhes</a></li>
+                                        <li><hr class="dropdown-divider" style="border-color: var(--border-color);"></li>
+                                        <li>
+                                            <form method="post" action="/clientes/{{ cliente.id }}/desativar" style="display:inline;">
+                                                <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Tem certeza que deseja desativar este cliente?')">
+                                                    <i class="bi bi-trash"></i> Desativar
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="bi bi-people display-4 mb-3" style="color: var(--text-secondary); opacity: 0.3;"></i>
+                            <br><span style="color: var(--text-secondary);">Nenhum cliente cadastrado</span>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Visualização em Cards -->
+    <div id="viewCards" class="row g-3" style="display: none;">
+        {% if clientes %}
+            {% for cliente in clientes %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 border-0 shadow-sm" style="background: var(--card-bg);">
+                    <div class="card-header border-bottom-0 pt-4 px-4 bg-transparent">
+                        <div class="d-flex align-items-center">
+                            <div class="avatar-circle me-3">{{ cliente.nome[0].upper() }}</div>
+                            <div>
+                                <h6 class="mb-0 fw-bold" style="color: var(--text-main);">{{ cliente.nome }}</h6>
+                                <small style="color: var(--text-secondary); opacity: 0.8;">ID: {{ cliente.id }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body px-4">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <small style="color: var(--text-secondary); opacity: 0.8;" class="d-block">Email</small>
+                                <span class="d-block text-truncate fw-bold" style="color: var(--text-main);">{{ cliente.email }}</span>
+                            </div>
+                            <div class="col-6">
+                                <small style="color: var(--text-secondary); opacity: 0.8;" class="d-block">Telefone</small>
+                                <span class="fw-bold" style="color: var(--text-main);">{{ cliente.telefone }}</span>
+                            </div>
+                            <div class="col-6">
+                                <small style="color: var(--text-secondary); opacity: 0.8;" class="d-block">Status</small>
+                                {% if cliente.status_contrato == "assinado" %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-weight: 500;">Assinado</span>
+                                {% elif cliente.status_contrato == "aguardando_assinatura" %}
+                                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25" style="font-weight: 500;">Pendente</span>
+                                {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style="font-weight: 500;">Sem Contrato</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-6">
+                                <small style="color: var(--text-secondary); opacity: 0.8;" class="d-block">Cadastro</small>
+                                <span class="fw-bold" style="color: var(--text-main);">{{ cliente.data_cadastro.strftime("%d/%m/%Y") if cliente.data_cadastro else "N/A" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer border-top-0 px-4 pb-4 bg-transparent">
+                        <div class="btn-group w-100" role="group">
+                            <a href="tel:{{ cliente.telefone }}" class="btn btn-sm btn-outline-secondary border-secondary shadow-sm" style="color: var(--text-main);">
+                                <i class="bi bi-telephone"></i> Ligar
+                            </a>
+                            <a href="/clientes/{{ cliente.id }}/detalhes" class="btn btn-sm btn-primary border-0 shadow-sm">
+                                <i class="bi bi-eye"></i> Detalhes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-people display-4 mb-3" style="color: var(--text-secondary); opacity: 0.3;"></i>
+                <br><span style="color: var(--text-secondary);">Nenhum cliente cadastrado</span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Cadastro Cliente -->
+<div class="modal fade" id="modalCadastroCliente" tabindex="-1" aria-labelledby="modalCadastroClienteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow" style="background: var(--card-bg);">
+            <div class="modal-header border-bottom-0 pt-4 px-4">
+                <h5 class="modal-title fw-bold" id="modalCadastroClienteLabel" style="color: var(--text-main);">Cadastrar Novo Cliente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <div id="alertError" class="alert alert-danger d-none border-0 shadow-sm bg-opacity-10 border-danger border-opacity-25 text-danger" role="alert"></div>
+                <form id="formCadastroCliente">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label fw-bold" style="color: var(--text-main);">Nome <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control border-secondary bg-transparent text-white" id="nome" name="nome" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label fw-bold" style="color: var(--text-main);">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control border-secondary bg-transparent text-white" id="email" name="email" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="telefone" class="form-label fw-bold" style="color: var(--text-main);">Telefone <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control border-secondary bg-transparent text-white" id="telefone" name="telefone" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="cpf" class="form-label fw-bold" style="color: var(--text-main);">CPF/CNPJ <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control border-secondary bg-transparent text-white" id="cpf" name="cpf" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="endereco" class="form-label fw-bold" style="color: var(--text-main);">Endereço</label>
+                        <textarea class="form-control border-secondary bg-transparent text-white" id="endereco" name="endereco" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary px-4 border-0 shadow-sm" id="btnSalvarCliente">
+                    <i class="bi bi-check-circle"></i> Cadastrar Cliente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Referências aos elementos
+        const inputBusca = document.getElementById('inputBusca');
+        const btnBuscar = document.getElementById('btnBuscar');
+        
+        // Função de buscar/cliente
+        // Lógica de busca removida pois agora é feita via backend (form submit)
+        
+        // Inicializar toggle de visualização
+        initViewToggle('table');
+        
+        // Adicionar máscaras de input
+        addInputMask('telefone', 'telefone');
+        addInputMask('cpf', 'cpf');
+        
+        // Exportar CSV
+        document.getElementById('btnExportar')?.addEventListener('click', function() {
+            const data = [];
+            document.querySelectorAll('#tabelaClientes tbody tr').forEach(tr => {
+                if (tr.querySelector('.fw-bold')) {
+                    data.push({
+                        nome: tr.querySelector('.fw-bold').textContent,
+                        email: tr.querySelector('.coluna-email')?.textContent || '',
+                        telefone: tr.querySelector('.coluna-telefone')?.textContent || '',
+                        cpf: tr.querySelector('.coluna-cpf')?.textContent || ''
+                    });
+                }
+            });
+            exportToCSV(data, 'clientes');
+        });
+        
+        // Submit do formulário de cadastro
+        document.getElementById('btnSalvarCliente')?.addEventListener('click', async function() {
+            if (!validateForm('formCadastroCliente')) {
+                showToast('Por favor, preencha todos os campos obrigatórios', 'warning');
+                return;
+            }
+            
+            showLoading('Cadastrando cliente...');
+            
+            try {
+                const form = document.getElementById('formCadastroCliente');
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                
+                await CRM.api.post('/clientes', data);
+                
+                showToast('Cliente cadastrado com sucesso!', 'success');
+                closeModal('modalCadastroCliente');
+                form.reset();
+                location.reload();
+            } catch (error) {
+                const alertError = document.getElementById('alertError');
+                alertError.textContent = error.message || 'Erro ao cadastrar cliente';
+                alertError.classList.remove('d-none');
+            } finally {
+                hideLoading();
+            }
+        });
+    });
+</script>
+{% endblock %}

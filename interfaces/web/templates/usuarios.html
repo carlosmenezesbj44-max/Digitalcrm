@@ -1,0 +1,229 @@
+{% extends "layout.html" %}
+
+{% block title %}Gerenciar Usuários - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    
+    .role-badge.admin { background-color: var(--danger-color) !important; color: white !important; }
+    .role-badge.gerente { background-color: var(--warning-color) !important; color: var(--gray-800) !important; }
+    .role-badge.tecnico { background-color: var(--info-color) !important; color: white !important; }
+    .role-badge.usuario { background-color: var(--secondary-color) !important; color: white !important; }
+    
+    .filter-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-people"></i> Usuários</h1>
+            <p class="text-muted mb-0">Gerencie os usuários do sistema</p>
+        </div>
+        <a href="/usuarios/novo" class="btn btn-primary">
+            <i class="bi bi-person-plus"></i> Novo Usuário
+        </a>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <!-- Busca -->
+    <div class="card mb-4 border-0 shadow-sm filter-card" style="background: var(--card-bg);">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text border-secondary bg-transparent" style="color: var(--text-secondary);"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control border-secondary bg-transparent text-white" id="inputBusca" placeholder="Buscar por nome, email ou username...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select border-secondary bg-transparent text-white" id="filtroRole">
+                        <option value="" class="bg-dark">Todos os Perfis</option>
+                        <option value="admin" class="bg-dark">Administrador</option>
+                        <option value="gerente" class="bg-dark">Gerente</option>
+                        <option value="tecnico" class="bg-dark">Técnico</option>
+                        <option value="usuario" class="bg-dark">Usuário</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select border-secondary bg-transparent text-white" id="filtroStatus">
+                        <option value="" class="bg-dark">Todos os Status</option>
+                        <option value="ativo" class="bg-dark">Ativo</option>
+                        <option value="inativo" class="bg-dark">Inativo</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Usuários -->
+    <div class="card border-0 shadow-sm" style="background: var(--card-bg);">
+        <div class="modal-header border-bottom-0 pt-4 px-4">
+            <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-people"></i> Lista de Usuários</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table" id="tabelaUsuarios" style="color: var(--text-main);">
+                    <thead>
+                        <tr>
+                            <th class="border-0 pb-3 d-none d-md-table-cell" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">ID</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Usuário</th>
+                            <th class="border-0 pb-3 d-none d-lg-table-cell" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Email</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Perfil</th>
+                            <th class="border-0 pb-3" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+                            <th class="border-0 pb-3 d-none d-md-table-cell" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Último Login</th>
+                            <th class="border-0 pb-3 text-end" style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="border-top-0">
+                        {% if usuarios %}
+                            {% for usuario in usuarios %}
+                            <tr class="linha-usuario" data-role="{{ usuario.role }}" data-status="{{ usuario.status }}" style="border-bottom: 1px solid var(--border-color); vertical-align: middle;">
+                                <td class="py-3 d-none d-md-table-cell" style="color: var(--text-main); font-size: 0.9rem;">{{ usuario.id }}</td>
+                                <td class="py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="user-avatar me-2" style="background-color: var(--primary-color);">
+                                            {{ usuario.username[0].upper() }}
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold" style="color: var(--text-main);">{{ usuario.username }}</div>
+                                            <small style="color: var(--text-secondary); font-size: 0.8rem;">{{ usuario.nome_completo or '' }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3 d-none d-lg-table-cell" style="color: var(--text-main); font-size: 0.9rem;">{{ usuario.email }}</td>
+                                <td class="py-3">
+                                    <span class="badge role-badge {{ usuario.role }}" style="font-weight: 500;">{{ usuario.role|title }}</span>
+                                </td>
+                                <td class="py-3">
+                                    {% if usuario.status == 'ativo' %}
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-weight: 500;">Ativo</span>
+                                    {% else %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style="font-weight: 500;">Inativo</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 d-none d-md-table-cell" style="color: var(--text-main); font-size: 0.9rem;">
+                                    {{ usuario.ultimo_login.strftime('%d/%m/%Y %H:%M') if usuario.ultimo_login else 'Nunca' }}
+                                </td>
+                                <td class="py-3 text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/usuarios/{{ usuario.id }}/editar" class="btn btn-outline-warning border-0" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        {% if usuario.status == 'ativo' %}
+                                        <button class="btn btn-outline-secondary border-0" onclick="alternarStatus({{ usuario.id }})" title="Desativar">
+                                            <i class="bi bi-pause"></i>
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-outline-success border-0" onclick="alternarStatus({{ usuario.id }})" title="Ativar">
+                                            <i class="bi bi-play"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button class="btn btn-outline-danger border-0" onclick="excluirUsuario({{ usuario.id }})" title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5" style="color: var(--text-secondary);">
+                                    <i class="bi bi-people display-4 mb-3" style="opacity: 0.5;"></i>
+                                    <br>Nenhum usuário cadastrado
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Busca com debounce
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputBusca = document.getElementById('inputBusca');
+        const filtroRole = document.getElementById('filtroRole');
+        const filtroStatus = document.getElementById('filtroStatus');
+        
+        function filtrar() {
+            const busca = inputBusca.value.toLowerCase();
+            const role = filtroRole.value;
+            const status = filtroStatus.value;
+            
+            document.querySelectorAll('.linha-usuario').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const matchBusca = !busca || text.includes(busca);
+                const matchRole = !role || row.dataset.role === role;
+                const matchStatus = !status || row.dataset.status === status;
+                
+                row.style.display = (matchBusca && matchRole && matchStatus) ? '' : 'none';
+            });
+        }
+        
+        inputBusca?.addEventListener('input', debounce(filtrar, 300));
+        filtroRole?.addEventListener('change', filtrar);
+        filtroStatus?.addEventListener('change', filtrar);
+    });
+
+    function alternarStatus(id) {
+        showLoading('Alterando status...');
+        fetch(`/api/usuarios/${id}/alternar-status`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Status alterado!', 'success');
+                    location.reload();
+                } else {
+                    showToast(data.message || 'Erro', 'error');
+                }
+            })
+            .catch(() => showToast('Erro ao alterar status', 'error'))
+            .finally(() => hideLoading());
+    }
+
+    function excluirUsuario(id) {
+        if (!confirm('Tem certeza que deseja excluir este usu?rio?')) return;
+        showLoading('Excluindo usu?rio...');
+        fetch(`/api/usuarios/${id}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.message || data.mensagem) {
+                    showToast(data.message || data.mensagem || 'Usu??rio exclu??do!', 'success');
+                    location.reload();
+                    return;
+                }
+                showToast(data.detail || 'Erro', 'error');
+            })
+            .catch(() => showToast('Erro ao excluir', 'error'))
+            .finally(() => hideLoading());
+    }
+</script>
+{% endblock %}

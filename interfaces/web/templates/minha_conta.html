@@ -1,0 +1,556 @@
+{% extends "layout.html" %}
+
+{% block title %}Minha Conta - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .account-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .account-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: white;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 20px;
+        text-transform: uppercase;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .account-meta {
+        line-height: 1.2;
+    }
+
+    .account-meta .email {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .nav-tabs .nav-link {
+        color: var(--text-secondary);
+    }
+
+    .nav-tabs .nav-link.active {
+        color: var(--text-main);
+        background: var(--card-bg);
+        border-color: var(--border-color) var(--border-color) var(--card-bg);
+    }
+
+    .tab-pane {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-top: none;
+        padding: 20px;
+        border-radius: 0 0 12px 12px;
+    }
+
+    .form-label {
+        color: var(--text-secondary);
+    }
+
+    .avatar-preview {
+        width: 120px;
+        height: 120px;
+        border-radius: 16px;
+        border: 1px dashed var(--border-color);
+        display: grid;
+        place-items: center;
+        color: var(--text-secondary);
+        background-size: cover;
+        background-position: center;
+    }
+
+    .helper-text {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="account-header">
+        <div class="account-avatar" id="accountAvatar">U</div>
+        <div class="account-meta">
+            <h4 class="mb-1" id="accountName">Minha Conta</h4>
+            <div class="email" id="accountEmail">-</div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs" id="accountTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="dados-tab" data-bs-toggle="tab" data-bs-target="#dados" type="button" role="tab">
+                Meus dados
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="seguranca-tab" data-bs-toggle="tab" data-bs-target="#seguranca" type="button" role="tab">
+                Segurança
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="foto-tab" data-bs-toggle="tab" data-bs-target="#foto" type="button" role="tab">
+                Foto de exibição
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="preferencias-tab" data-bs-toggle="tab" data-bs-target="#preferencias" type="button" role="tab">
+                Preferências
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="dados" role="tabpanel">
+            <form id="profileForm" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nome completo</label>
+                    <input type="text" class="form-control" id="nomeCompleto" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" disabled>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Perfil</label>
+                    <input type="text" class="form-control" id="role" disabled>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Salvar alterações</button>
+                    <button type="button" class="btn btn-outline-secondary" id="reloadProfile">Recarregar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="tab-pane fade" id="seguranca" role="tabpanel">
+            <form id="passwordForm" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Senha atual</label>
+                    <input type="password" class="form-control" id="senhaAtual" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Nova senha</label>
+                    <input type="password" class="form-control" id="novaSenha" minlength="8" required>
+                    <div class="helper-text">Mínimo 8 caracteres.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Confirmar nova senha</label>
+                    <input type="password" class="form-control" id="confirmarSenha" minlength="8" required>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Atualizar senha</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="tab-pane fade" id="foto" role="tabpanel">
+            <form id="photoForm" class="row g-3">
+                <div class="col-md-4">
+                    <div class="avatar-preview" id="avatarPreview">Preview</div>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Enviar nova foto</label>
+                    <input type="file" class="form-control" id="fotoInput" accept="image/*" required>
+                    <div class="helper-text mt-2">Use imagens quadradas para melhor resultado.</div>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Salvar foto</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="tab-pane fade" id="preferencias" role="tabpanel">
+            <form id="preferencesForm" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Idioma</label>
+                    <select class="form-select" id="prefIdioma">
+                        <option value="pt-BR">Português (Brasil)</option>
+                        <option value="pt-PT">Português (Portugal)</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Fuso horário</label>
+                    <select class="form-select" id="prefFuso">
+                        <option value="America/Sao_Paulo">America/Sao_Paulo</option>
+                        <option value="America/Manaus">America/Manaus</option>
+                        <option value="America/Fortaleza">America/Fortaleza</option>
+                        <option value="America/Recife">America/Recife</option>
+                        <option value="UTC">UTC</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Formato de data</label>
+                    <select class="form-select" id="prefData">
+                        <option value="dd/MM/yyyy">dd/MM/yyyy</option>
+                        <option value="MM/dd/yyyy">MM/dd/yyyy</option>
+                        <option value="yyyy-MM-dd">yyyy-MM-dd</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Tema</label>
+                    <select class="form-select" id="prefTema">
+                        <option value="dark">Escuro</option>
+                        <option value="light">Claro</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Densidade</label>
+                    <select class="form-select" id="prefDensidade">
+                        <option value="normal">Normal</option>
+                        <option value="compact">Compacta</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Itens por página</label>
+                    <select class="form-select" id="prefItens">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Dashboard padrão</label>
+                    <select class="form-select" id="prefDashboard">
+                        <option value="principal">Principal</option>
+                        <option value="financeiro">Financeiro</option>
+                        <option value="suporte">Suporte</option>
+                        <option value="vendas">Vendas</option>
+                        <option value="tecnico">Técnico</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Aviso de vencimento (dias antes)</label>
+                    <input type="number" min="0" max="30" class="form-control" id="prefAviso">
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Notificações</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="prefEmail">
+                        <label class="form-check-label" for="prefEmail">Receber notificações por email</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="prefInApp">
+                        <label class="form-check-label" for="prefInApp">Notificações dentro do sistema</label>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Atalhos rápidos (dashboard)</label>
+                    <select class="form-select" id="prefAtalhos" multiple>
+                        <option value="clientes_novo">Novo cliente</option>
+                        <option value="contrato_novo">Novo contrato</option>
+                        <option value="ordem_nova">Nova ordem de serviço</option>
+                        <option value="faturas">Faturas</option>
+                        <option value="carnes">Carnês</option>
+                        <option value="boletos">Boletos</option>
+                        <option value="relatorios_clientes">Relatório clientes</option>
+                        <option value="relatorios_contratos">Relatório contratos</option>
+                    </select>
+                    <div class="helper-text mt-2">Segure Ctrl/Cmd para selecionar mais de um.</div>
+                </div>
+
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Salvar preferências</button>
+                    <button type="button" class="btn btn-outline-secondary" id="reloadPreferences">Recarregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentUser = null;
+
+    function showMessage(message, type = 'info') {
+        if (typeof showToast === 'function') {
+            showToast(message, type);
+        } else {
+            alert(message);
+        }
+    }
+
+    function updateHeader(user) {
+        const name = user.nome_completo || user.username || 'Usuário';
+        const email = user.email || '-';
+        const initials = name
+            .split(' ')
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(part => part[0])
+            .join('')
+            .toUpperCase();
+
+        document.getElementById('accountName').textContent = name;
+        document.getElementById('accountEmail').textContent = email;
+
+        const avatar = document.getElementById('accountAvatar');
+        if (user.foto_url) {
+            avatar.textContent = '';
+            avatar.style.backgroundImage = `url(${user.foto_url})`;
+        } else {
+            avatar.style.backgroundImage = '';
+            avatar.textContent = initials || 'U';
+        }
+
+        const preview = document.getElementById('avatarPreview');
+        if (user.foto_url) {
+            preview.textContent = '';
+            preview.style.backgroundImage = `url(${user.foto_url})`;
+        } else {
+            preview.textContent = 'Preview';
+            preview.style.backgroundImage = '';
+        }
+    }
+
+    async function loadProfile() {
+        const response = await fetch('/api/usuarios/me');
+        if (!response.ok) {
+            showMessage('Não foi possível carregar os dados.', 'error');
+            return;
+        }
+        currentUser = await response.json();
+
+        document.getElementById('nomeCompleto').value = currentUser.nome_completo || '';
+        document.getElementById('username').value = currentUser.username || '';
+        document.getElementById('email').value = currentUser.email || '';
+        document.getElementById('role').value = currentUser.role || '';
+
+        updateHeader(currentUser);
+    }
+
+    function defaultPreferences() {
+        return {
+            idioma: 'pt-BR',
+            fuso_horario: 'America/Sao_Paulo',
+            formato_data: 'dd/MM/yyyy',
+            tema: 'dark',
+            densidade: 'normal',
+            itens_por_pagina: 20,
+            dashboard_padrao: 'principal',
+            aviso_vencimento_dias: 3,
+            notificar_email: true,
+            notificar_inapp: true,
+            atalhos_rapidos: []
+        };
+    }
+
+    function applyPreferences(preferencias) {
+        if (!preferencias) return;
+        if (preferencias.tema) {
+            document.body.classList.remove('theme-light', 'theme-dark');
+            document.body.classList.add(`theme-${preferencias.tema}`);
+            localStorage.setItem('theme', preferencias.tema);
+        }
+        if (preferencias.densidade) {
+            document.body.classList.remove('density-compact', 'density-normal');
+            document.body.classList.add(`density-${preferencias.densidade}`);
+            localStorage.setItem('density', preferencias.densidade);
+        }
+        if (preferencias.dashboard_padrao) {
+            localStorage.setItem('dashboard_default', preferencias.dashboard_padrao);
+        }
+    }
+
+    function fillPreferencesForm(preferencias) {
+        const prefs = { ...defaultPreferences(), ...(preferencias || {}) };
+        document.getElementById('prefIdioma').value = prefs.idioma;
+        document.getElementById('prefFuso').value = prefs.fuso_horario;
+        document.getElementById('prefData').value = prefs.formato_data;
+        document.getElementById('prefTema').value = prefs.tema;
+        document.getElementById('prefDensidade').value = prefs.densidade;
+        document.getElementById('prefItens').value = String(prefs.itens_por_pagina);
+        document.getElementById('prefDashboard').value = prefs.dashboard_padrao;
+        document.getElementById('prefAviso').value = prefs.aviso_vencimento_dias;
+        document.getElementById('prefEmail').checked = !!prefs.notificar_email;
+        document.getElementById('prefInApp').checked = !!prefs.notificar_inapp;
+
+        const select = document.getElementById('prefAtalhos');
+        [...select.options].forEach(option => {
+            option.selected = (prefs.atalhos_rapidos || []).includes(option.value);
+        });
+    }
+
+    function readPreferencesForm() {
+        const select = document.getElementById('prefAtalhos');
+        const atalhos = [...select.selectedOptions].map(option => option.value);
+
+        return {
+            idioma: document.getElementById('prefIdioma').value,
+            fuso_horario: document.getElementById('prefFuso').value,
+            formato_data: document.getElementById('prefData').value,
+            tema: document.getElementById('prefTema').value,
+            densidade: document.getElementById('prefDensidade').value,
+            itens_por_pagina: Number(document.getElementById('prefItens').value),
+            dashboard_padrao: document.getElementById('prefDashboard').value,
+            aviso_vencimento_dias: Number(document.getElementById('prefAviso').value || 0),
+            notificar_email: document.getElementById('prefEmail').checked,
+            notificar_inapp: document.getElementById('prefInApp').checked,
+            atalhos_rapidos: atalhos
+        };
+    }
+
+    async function loadPreferences() {
+        const response = await fetch('/api/usuarios/me/preferencias');
+        if (!response.ok) {
+            fillPreferencesForm(defaultPreferences());
+            return;
+        }
+        const data = await response.json();
+        const prefs = data.preferencias || {};
+        fillPreferencesForm(prefs);
+        applyPreferences(prefs);
+    }
+
+    document.getElementById('reloadProfile').addEventListener('click', loadProfile);
+
+    document.getElementById('profileForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const payload = {
+            nome_completo: document.getElementById('nomeCompleto').value.trim(),
+            email: document.getElementById('email').value.trim()
+        };
+
+        const response = await fetch('/api/usuarios/me/editar', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showMessage(data.detail || 'Erro ao atualizar dados.', 'error');
+            return;
+        }
+
+        currentUser = await response.json();
+        updateHeader(currentUser);
+        showMessage('Dados atualizados com sucesso.', 'success');
+    });
+
+    document.getElementById('passwordForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const senhaAtual = document.getElementById('senhaAtual').value;
+        const novaSenha = document.getElementById('novaSenha').value;
+        const confirmarSenha = document.getElementById('confirmarSenha').value;
+
+        if (novaSenha !== confirmarSenha) {
+            showMessage('As senhas não conferem.', 'warning');
+            return;
+        }
+
+        const response = await fetch('/api/usuarios/me/senha', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ senha_atual: senhaAtual, nova_senha: novaSenha })
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showMessage(data.detail || 'Erro ao atualizar senha.', 'error');
+            return;
+        }
+
+        document.getElementById('senhaAtual').value = '';
+        document.getElementById('novaSenha').value = '';
+        document.getElementById('confirmarSenha').value = '';
+        showMessage('Senha atualizada com sucesso.', 'success');
+    });
+
+    document.getElementById('fotoInput').addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const preview = document.getElementById('avatarPreview');
+        const reader = new FileReader();
+        reader.onload = () => {
+            preview.textContent = '';
+            preview.style.backgroundImage = `url(${reader.result})`;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    document.getElementById('photoForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const fileInput = document.getElementById('fotoInput');
+        const file = fileInput.files[0];
+        if (!file) {
+            showMessage('Selecione uma imagem.', 'warning');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/usuarios/me/foto', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showMessage(data.detail || 'Erro ao atualizar foto.', 'error');
+            return;
+        }
+
+        const data = await response.json();
+        currentUser = { ...(currentUser || {}), foto_url: data.foto_url };
+        updateHeader(currentUser);
+        showMessage('Foto atualizada com sucesso.', 'success');
+    });
+
+    document.getElementById('reloadPreferences').addEventListener('click', loadPreferences);
+
+    document.getElementById('preferencesForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const preferencias = readPreferencesForm();
+        const response = await fetch('/api/usuarios/me/preferencias', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ preferencias })
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showMessage(data.detail || 'Erro ao salvar preferências.', 'error');
+            return;
+        }
+
+        const data = await response.json();
+        applyPreferences(data.preferencias);
+        showMessage('Preferências atualizadas com sucesso.', 'success');
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        if (tab) {
+            const tabButton = document.querySelector(`#${tab}-tab`);
+            if (tabButton) {
+                const trigger = new bootstrap.Tab(tabButton);
+                trigger.show();
+            }
+        }
+        loadProfile();
+        loadPreferences();
+    });
+</script>
+{% endblock %}

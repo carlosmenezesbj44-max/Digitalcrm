@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carnê #{{ carne.id }} - {{ carne.cliente.nome }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --dark-color: #212529;
+            --light-bg: #f8f9fa;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            background-color: white;
+            color: var(--dark-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 0;
+            margin: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .print-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .carne-header {
+            border-bottom: 2px solid var(--dark-color);
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .company-info h4 {
+            margin: 0;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .carne-info {
+            text-align: right;
+        }
+
+        .carne-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .parcela-card {
+            border: 1px dashed #ccc;
+            margin-bottom: 20px;
+            padding: 15px;
+            page-break-inside: avoid;
+            display: flex;
+            gap: 15px;
+        }
+
+        .parcela-stub {
+            width: 200px;
+            border-right: 1px dashed #ccc;
+            padding-right: 15px;
+        }
+
+        .parcela-main {
+            flex-grow: 1;
+        }
+
+        .stub-title, .main-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .info-value {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .barcode-area {
+            margin-top: 15px;
+            height: 50px;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #eee;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            position: relative;
+        }
+
+        .pix-qrcode-container {
+            width: 180px;
+            height: 180px;
+            background: white;
+            border: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 15px;
+            padding: 8px;
+        }
+
+        .pix-qrcode-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+            }
+            .no-print {
+                display: none;
+            }
+            .print-container {
+                width: 100%;
+                max-width: none;
+                padding: 0;
+            }
+            .parcela-card {
+                border: 1px solid #eee;
+                border-bottom: 1px dashed #ccc;
+            }
+        }
+
+        .btn-print {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+    <button class="btn btn-primary btn-print no-print" onclick="window.print()">
+        <i class="bi bi-printer-fill me-2"></i> Imprimir Carnê
+    </button>
+
+    <div class="print-container">
+        <div class="carne-header">
+            <div class="company-info">
+                <h4>DigitalCode CRM</h4>
+                <p class="text-muted small mb-0">Soluções em Gestão de Provedores</p>
+            </div>
+            <div class="carne-info">
+                <div class="carne-id">CARNÊ #{{ carne.id }}</div>
+                <div class="small text-muted">Gerado em {{ now.strftime('%d/%m/%Y') }}</div>
+            </div>
+        </div>
+
+        <div class="cliente-box mb-4 p-3 bg-light rounded">
+            <div class="row">
+                <div class="col-md-8">
+                    <h6 class="text-uppercase small fw-bold text-muted mb-2">Cliente / Pagador</h6>
+                    <div class="fw-bold">{{ carne.cliente.nome }}</div>
+                    <div class="small text-muted">{{ carne.cliente.cpf or carne.cliente.cnpj or 'CPF não informado' }}</div>
+                    <div class="small text-muted">{{ carne.cliente.endereco or 'Endereço não informado' }}</div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <h6 class="text-uppercase small fw-bold text-muted mb-2">Resumo</h6>
+                    <div class="small">Total: <strong>R$ {{ "%.2f"|format(carne.valor_total) }}</strong></div>
+                    <div class="small">Parcelas: <strong>{{ carne.quantidade_parcelas }}</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="parcelas-list">
+            {% for parcela in carne.parcelas %}
+            <div class="parcela-card">
+                <!-- Canhoto -->
+                <div class="parcela-stub">
+                    <div class="stub-title">Recibo do Pagador</div>
+                    <div class="info-row">
+                        <span class="info-label">Parcela</span>
+                        <span class="info-value">{{ parcela.numero_parcela }}/{{ carne.quantidade_parcelas }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Vencimento</span>
+                        <span class="info-value">{{ parcela.data_vencimento.strftime('%d/%m/%Y') }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Valor</span>
+                        <span class="info-value">R$ {{ "%.2f"|format(parcela.valor) }}</span>
+                    </div>
+                    <div class="mt-3 pt-2 border-top">
+                        <div class="stub-title">Autenticação Mecânica</div>
+                    </div>
+                </div>
+
+                <!-- Parte Principal -->
+                <div class="parcela-main">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <div class="main-title">DigitalCode CRM - Carnê de Pagamento</div>
+                            <div class="fw-bold">Parcela {{ parcela.numero_parcela }} de {{ carne.quantidade_parcelas }}</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="main-title">Vencimento</div>
+                            <div class="fw-bold text-primary">{{ parcela.data_vencimento.strftime('%d/%m/%Y') }}</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-8">
+                            <div class="main-title">Pagador</div>
+                            <div class="small">{{ carne.cliente.nome }}</div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="main-title">Valor da Parcela</div>
+                            <div class="fw-bold">R$ {{ "%.2f"|format(parcela.valor) }}</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-end gap-2">
+                        <div class="flex-grow-1">
+                            {% if parcela.linha_digitavel %}
+                            <div class="barcode-area">
+                                {{ parcela.linha_digitavel }}
+                            </div>
+                            {% else %}
+                            <div class="barcode-area text-muted">
+                                Pagamento via transferência ou na sede da empresa
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if config.PIX_CHAVE %}
+                        <div class="pix-qrcode-container no-print-shadow" id="pix-qrcode-{{ parcela.id }}" 
+                             data-amount="{{ parcela.valor }}" 
+                             data-txid="CARNE{{ carne.id }}P{{ parcela.numero_parcela }}">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="footer-print mt-5 text-center text-muted small no-print">
+        <p>Este é um documento de controle interno. Utilize para pagamentos presenciais ou conforme instruções do provedor.</p>
+    </div>
+
+    <script src="/static/js/qrcode.min.js"></script>
+    <script>
+        function removeAccents(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+        }
+
+        function normalizePixKey(key, keyType) {
+            const raw = String(key || '').trim();
+            if (!raw) return '';
+
+            switch ((keyType || '').toLowerCase()) {
+                case 'cpf':
+                case 'cnpj':
+                case 'telefone':
+                    return raw.replace(/\D/g, '');
+                case 'email':
+                    return raw.replace(/\s+/g, '').toLowerCase();
+                case 'aleatoria':
+                case 'evp':
+                default:
+                    return raw.replace(/\s+/g, '');
+            }
+        }
+
+        function generatePixPayload(key, keyType, beneficiary, city, amount, txid = '***') {
+            function formatField(id, value) {
+                const val = String(value);
+                const len = val.length.toString().padStart(2, '0');
+                return `${id}${len}${val}`;
+            }
+
+            // Limpar dados para o padrão PIX
+            const cleanKey = normalizePixKey(key, keyType);
+            if (!cleanKey) {
+                throw new Error('Chave PIX inválida');
+            }
+            const cleanBeneficiary = removeAccents(beneficiary || 'CRM PROVEDOR').substring(0, 25);
+            const cleanCity = removeAccents(city || 'SAO PAULO').substring(0, 15);
+            const cleanTxid = removeAccents(txid || '***').replace(/[^A-Z0-9]/g, '').substring(0, 25);
+            
+            // Merchant Account Information (ID 26)
+            const gui = formatField('00', 'br.gov.bcb.pix');
+            const keyField = formatField('01', cleanKey);
+            const merchantAccount = formatField('26', gui + keyField);
+
+            const payload = [
+                formatField('00', '01'), // Payload Format Indicator
+                merchantAccount,         // Merchant Account Information
+                formatField('52', '0000'), // Merchant Category Code
+                formatField('53', '986'), // Transaction Currency (BRL)
+                formatField('54', parseFloat(amount).toFixed(2)), // Transaction Amount
+                formatField('58', 'BR'), // Country Code
+                formatField('59', cleanBeneficiary), // Merchant Name
+                formatField('60', cleanCity), // Merchant City
+                formatField('62', formatField('05', cleanTxid)), // Additional Data Field (TXID)
+                '6304' // CRC16 Placeholder
+            ].join('');
+
+            // CRC16 CCITT (Standard para PIX)
+            let crc = 0xFFFF;
+            for (let i = 0; i < payload.length; i++) {
+                crc ^= (payload.charCodeAt(i) << 8);
+                for (let j = 0; j < 8; j++) {
+                    if ((crc & 0x8000) !== 0) crc = (crc << 1) ^ 0x1021;
+                    else crc <<= 1;
+                }
+            }
+            crc = (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+            
+            return payload + crc;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const pixKey = "{{ config.PIX_CHAVE }}";
+            const pixKeyType = "{{ config.PIX_TIPO_CHAVE or 'cpf' }}";
+            const beneficiary = "{{ config.PIX_BENEFICIARIO }}";
+            const city = "{{ config.PIX_CIDADE }}";
+
+            if (!pixKey) return;
+
+            const qrContainers = document.querySelectorAll('.pix-qrcode-container');
+            qrContainers.forEach(container => {
+                const amount = container.dataset.amount;
+                const txid = container.dataset.txid;
+                
+                try {
+                    const payload = generatePixPayload(pixKey, pixKeyType, beneficiary, city, amount, txid);
+                    container.innerHTML = '';
+                    const canvas = document.createElement('canvas');
+                    container.appendChild(canvas);
+
+                    const style = window.getComputedStyle(container);
+                    const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+                    const size = Math.max(80, container.clientWidth - paddingX);
+
+                    QRCode.toCanvas(canvas, payload, {
+                        width: size,
+                        margin: 0,
+                        errorCorrectionLevel: 'H',
+                        color: {
+                            dark: '#000000',
+                            light: '#ffffff'
+                        }
+                    }, function (error) {
+                        if (error) {
+                            console.error('Erro ao gerar QR Code:', error);
+                            container.innerHTML = '<i class="bi bi-qr-code text-danger"></i>';
+                        }
+                    });
+                } catch (e) {
+                    console.error('Erro ao processar PIX:', e);
+                    container.innerHTML = '<i class="bi bi-qr-code text-danger"></i>';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordem de Serviço #{{ ordem.id }} - CRM Provedor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --dark-color: #212529;
+            --light-bg: #f8f9fa;
+            --border-color: #e9ecef;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            color: var(--dark-color);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 40px 20px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .os-paper {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .os-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--primary-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .os-badge-id {
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 18px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .os-body {
+            padding: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-bg);
+            color: var(--primary-color);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-aberta { background: #e0f2fe; color: #0369a1; }
+        .status-em_andamento { background: #fef3c7; color: #92400e; }
+        .status-concluida { background: #dcfce7; color: #166534; }
+        .status-cancelada { background: #fee2e2; color: #991b1b; }
+
+        .priority-pill {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .priority-alta { background: #fee2e2; color: #991b1b; }
+        .priority-media { background: #fef3c7; color: #92400e; }
+        .priority-baixa { background: #dcfce7; color: #166534; }
+
+        .content-box {
+            background: var(--light-bg);
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .signature-area {
+            margin-top: 60px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+        }
+
+        .sig-block {
+            text-align: center;
+        }
+
+        .sig-line {
+            border-top: 1px solid #cbd5e1;
+            margin-bottom: 10px;
+        }
+
+        .sig-name {
+            font-size: 13px;
+            color: var(--secondary-color);
+        }
+
+        .os-footer {
+            padding: 30px 40px;
+            background: var(--light-bg);
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--secondary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .qr-placeholder {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: #e2e8f0;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .os-paper { box-shadow: none; border-radius: 0; max-width: 100%; }
+            .no-print { display: none !important; }
+            .os-header { padding: 30px; }
+            .os-body { padding: 30px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container no-print mb-4 d-flex justify-content-center gap-2">
+        <button onclick="window.print()" class="btn btn-dark shadow-sm px-4">
+            <i class="bi bi-printer me-2"></i>Imprimir Ordem
+        </button>
+        <button onclick="window.close()" class="btn btn-light border shadow-sm px-4">
+            <i class="bi bi-x-lg me-2"></i>Fechar
+        </button>
+    </div>
+
+    <div class="os-paper">
+        <div class="os-header">
+            <div class="brand-logo">
+                <div class="logo-icon">
+                    <i class="bi bi-router"></i>
+                </div>
+                <div>
+                    <h2 class="mb-0 fw-bold" style="letter-spacing: -0.5px;">CRM Provedor</h2>
+                    <p class="mb-0 opacity-75 small">Gestão Inteligente de Conectividade</p>
+                </div>
+            </div>
+            <div class="text-end">
+                <div class="os-badge-id mb-2">OS-{{ "%05d"|format(ordem.id) }}</div>
+                <div class="small opacity-75">Emissão: {{ ordem.data_criacao.strftime("%d/%m/%Y %H:%M") if ordem.data_criacao else "" }}</div>
+            </div>
+        </div>
+
+        <div class="os-body">
+            <!-- CLIENTE -->
+            <div class="section-header">
+                <i class="bi bi-person-circle"></i> Informações do Cliente
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Nome Completo</span>
+                    <span class="info-value">{{ ordem.cliente_nome or "N/A" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Endereço de Atendimento</span>
+                    <span class="info-value">{{ ordem.endereco_servico or "N/A" }}</span>
+                </div>
+            </div>
+
+            <!-- SERVIÇO -->
+            <div class="section-header">
+                <i class="bi bi-tools"></i> Detalhes da Solicitação
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Tipo de Serviço</span>
+                    <span class="info-value">{{ ordem.tipo_servico }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status do Chamado</span>
+                    <div>
+                        <span class="status-pill status-{{ ordem.status }}">
+                            <i class="bi bi-dot fs-4"></i>
+                            {% if ordem.status == 'aberta' %}Aberta
+                            {% elif ordem.status == 'em_andamento' %}Em Andamento
+                            {% elif ordem.status == 'concluida' %}Concluída
+                            {% elif ordem.status == 'cancelada' %}Cancelada
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Prioridade</span>
+                    <div>
+                        <span class="priority-pill priority-{{ ordem.prioridade }}">
+                            {{ ordem.prioridade }}
+                        </span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Agendamento</span>
+                    <span class="info-value">
+                        <i class="bi bi-calendar-event me-1 text-muted"></i>
+                        {{ ordem.data_agendamento.strftime("%d/%m/%Y %H:%M") if ordem.data_agendamento else "Não agendado" }}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Técnico Designado</span>
+                    <span class="info-value">{{ ordem.tecnico_responsavel or "Aguardando atribuição" }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Valor do Serviço</span>
+                    <span class="info-value fw-bold text-primary">R$ {{ "%.2f"|format(ordem.valor) if ordem.valor else "0,00" }}</span>
+                </div>
+            </div>
+
+            <!-- DESCRIÇÃO -->
+            <div class="section-header">
+                <i class="bi bi-card-text"></i> Descrição do Problema / Serviço
+            </div>
+            <div class="content-box">
+                <strong class="d-block mb-2 text-dark">{{ ordem.titulo }}</strong>
+                {{ ordem.descricao }}
+            </div>
+
+            {% if ordem.observacoes %}
+            <div class="section-header">
+                <i class="bi bi-chat-left-dots"></i> Observações Técnicas
+            </div>
+            <div class="content-box">
+                {{ ordem.observacoes }}
+            </div>
+            {% endif %}
+
+            <!-- ASSINATURAS -->
+            <div class="signature-area">
+                <div class="sig-block">
+                    <div class="sig-line"></div>
+                    <div class="sig-name">Responsável Técnico</div>
+                    <div class="small text-muted mt-1">{{ ordem.tecnico_responsavel or "________________" }}</div>
+                </div>
+                <div class="sig-block">
+                    <div class="sig-line"></div>
+                    <div class="sig-name">Assinatura do Cliente</div>
+                    <div class="small text-muted mt-1">CPF: ___________________</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="os-footer">
+            <div>
+                <div class="fw-bold text-dark">CRM Provedor - Soluções em Telecom</div>
+                <div class="opacity-75">Gerado automaticamente em {{ now.strftime("%d/%m/%Y às %H:%M") }}</div>
+            </div>
+            <div class="qr-placeholder">
+                <i class="bi bi-qr-code"></i>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

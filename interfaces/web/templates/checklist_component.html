@@ -1,0 +1,151 @@
+<div class="card bg-transparent border-secondary checklist-container" id="checklistCard{{ ordem.id }}">
+    <div class="modal-header border-secondary bg-dark text-white">
+        <h5 class="modal-title h6">
+            <i class="bi bi-list-check me-2"></i>Checklist de Execução
+        </h5>
+        <span class="badge bg-info" id="checklistProgress{{ ordem.id }}">0 de 0</span>
+    </div>
+    <div class="card-body">
+        <!-- Progress bar -->
+        <div class="mb-3">
+            <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-success" id="checklistProgressBar{{ ordem.id }}" role="progressbar" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <!-- Checklist items -->
+        <ul class="list-group list-group-flush" id="checklistItems{{ ordem.id }}">
+            <li class="list-group-item bg-transparent text-white text-center py-4">
+                <i class="bi bi-hourglass-split me-2"></i>Carregando checklist...
+            </li>
+        </ul>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadChecklist({{ ordem.id }}, '{{ ordem.tipo_servico }}');
+});
+
+function loadChecklist(ordemId, tipoServico) {
+    const token = localStorage.getItem('access_token');
+    
+    fetch(`/api/v1/checklist/${ordemId}?tipo_servico=${tipoServico}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Erro ao carregar checklist');
+        return response.json();
+    })
+    .then(data => {
+        renderChecklist(ordemId, data);
+    })
+    .catch(error => {
+        console.error('Erro ao carregar checklist:', error);
+        document.getElementById(`checklistItems${ordemId}`).innerHTML = `
+            <li class="list-group-item bg-transparent text-white text-center py-4">
+                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                Erro ao carregar checklist
+            </li>
+        `;
+    });
+}
+
+function renderChecklist(ordemId, data) {
+    const container = document.getElementById(`checklistItems${ordemId}`);
+    const progressLabel = document.getElementById(`checklistProgress${ordemId}`);
+    const progressBar = document.getElementById(`checklistProgressBar${ordemId}`);
+    
+    // Update progress
+    const summary = data.summary;
+    progressLabel.textContent = `${summary.completed} de ${summary.total}`;
+    progressBar.style.width = `${summary.percentage}%`;
+    
+    if (summary.is_complete) {
+        progressLabel.classList.remove('bg-info');
+        progressLabel.classList.add('bg-success');
+        progressLabel.innerHTML = '<i class="bi bi-check-circle me-1"></i>Completo';
+    }
+    
+    // Render items
+    let html = '';
+    data.items.forEach(item => {
+        const checked = item.completado ? 'checked' : '';
+        const completedClass = item.completado ? 'completed' : '';
+        const completedBy = item.completado_por ? `<small class="text-muted d-block">Por: ${item.completado_por}</small>` : '';
+        
+        html += `
+            <li class="list-group-item bg-transparent ${completedClass}" id="checklistItem${ordemId}_${item.id}">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" ${checked} 
+                           id="check_${ordemId}_${item.id}"
+                           onchange="toggleChecklistItem(${ordemId}, ${item.id})"
+                           style="cursor: pointer;">
+                    <label class="form-check-label" for="check_${ordemId}_${item.id}" style="cursor: pointer;">
+                        <strong>${item.nome_tarefa}</strong>
+                        ${item.descricao ? `<br><small class="text-muted">${item.descricao}</small>` : ''}
+                        ${completedBy}
+                    </label>
+                </div>
+            </li>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function toggleChecklistItem(ordemId, itemId) {
+    const token = localStorage.getItem('access_token');
+    const checkbox = document.getElementById(`check_${ordemId}_${itemId}`);
+    
+    // Get técnico logado
+    const tecnico = localStorage.getItem('usuario_nome') || 'Técnico';
+    
+    fetch(`/api/v1/checklist/${ordemId}/items/${itemId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            completado_por: tecnico
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Erro ao atualizar item');
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Reload checklist to update progress
+            loadChecklist(ordemId, document.querySelector(`#checklistCard${ordemId}`).dataset.tipoServico || 'suporte');
+        } else {
+            // Revert checkbox state
+            checkbox.checked = !checkbox.checked;
+            showToast(data.message || 'Erro ao atualizar item', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao atualizar item:', error);
+        checkbox.checked = !checkbox.checked;
+        showToast('Erro ao atualizar item', 'error');
+    });
+}
+</script>
+
+<style>
+.checklist-container .list-group-item.completed {
+    opacity: 0.6;
+}
+
+.checklist-container .list-group-item.completed .form-check-label {
+    text-decoration: line-through;
+}
+
+.checklist-container .form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+</style>

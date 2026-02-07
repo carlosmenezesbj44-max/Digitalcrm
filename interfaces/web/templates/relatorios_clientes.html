@@ -1,0 +1,690 @@
+{% extends "layout.html" %}
+
+{% block title %}Relatórios de Clientes - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .stat-card h5 { 
+        font-size: 0.85rem; 
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 15px; 
+        color: var(--text-secondary);
+    }
+    
+    .stat-card .value { 
+        font-size: 32px; 
+        font-weight: 800; 
+        color: var(--text-main);
+    }
+    
+    .stat-card i {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        display: block;
+    }
+
+    .stat-card.total i { color: var(--primary-color); }
+    .stat-card.ativos i { color: var(--success-color); }
+    .stat-card.inativos i { color: var(--warning-color); }
+    .stat-card.cancelados i { color: var(--danger-color); }
+    
+    .chart-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .chart-container h5 {
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--text-main);
+    }
+
+    .filter-section {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .filter-section h6 {
+        font-weight: 700;
+        margin-bottom: 15px;
+        color: var(--text-main);
+    }
+
+    .btn-group .btn {
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-people"></i> Relatórios de Clientes</h1>
+            <p class="text-muted mb-0">Estatísticas e relatórios dos clientes</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="exportarPDFClientes()">
+                <i class="bi bi-file-pdf"></i> Exportar PDF
+            </button>
+            <button class="btn btn-outline-success" onclick="exportarCSVClientes()">
+                <i class="bi bi-file-excel"></i> Exportar CSV
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-section">
+        <h6><i class="bi bi-funnel"></i> Filtros de Relatório</h6>
+        <div class="row">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="filterStatus" onchange="aplicarFiltros()">
+                    <option value="todos">Todos os Clientes</option>
+                    <option value="ativos">Apenas Ativos</option>
+                    <option value="inativos">Apenas Inativos</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Período</label>
+                <select class="form-select" id="filterPeriodo" onchange="aplicarFiltros()">
+                    <option value="todos">Todos os Períodos</option>
+                    <option value="mes">Últimos 30 dias</option>
+                    <option value="trimestre">Últimos 90 dias</option>
+                    <option value="ano">Últimos 365 dias</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Plano</label>
+                <select class="form-select" id="filterPlano" onchange="aplicarFiltros()">
+                    <option value="todos">Todos os Planos</option>
+                    <!-- Opções de planos serão carregadas via JavaScript -->
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Ações</label>
+                <div class="btn-group-vertical w-100">
+                    <button class="btn btn-outline-secondary" onclick="gerarRelatorioDetalhado()">
+                        <i class="bi bi-list-ul"></i> Detalhado
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="gerarResumoFinanceiro()">
+                        <i class="bi bi-currency-dollar"></i> Financeiro
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="gerarRelatorioMapa()">
+                        <i class="bi bi-map"></i> Geográfico
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card total">
+                <h5><i class="bi bi-people-fill"></i> Total de Clientes</h5>
+                <div class="value">{{ stats.total or 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card ativos">
+                <h5><i class="bi bi-check-circle"></i> Clientes Ativos</h5>
+                <div class="value">{{ stats.ativos or 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card inativos">
+                <h5><i class="bi bi-x-circle"></i> Clientes Inativos</h5>
+                <div class="value">{{ stats.inativos or 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card cancelados">
+                <h5><i class="bi bi-exclamation-triangle"></i> Taxa de Rotatividade</h5>
+                <div class="value">
+                    {% if stats.total > 0 %}
+                        {{ "%.1f"|format((stats.inativos / stats.total) * 100) }}%
+                    {% else %}
+                        0.0%
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos e Tabelas -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h5><i class="bi bi-pie-chart"></i> Distribuição por Status</h5>
+                <div id="graficoPizzaClientes" style="height: 250px; display: flex; align-items: center; justify-content: center;">
+                    <canvas id="pizzaChartClientes"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container">
+                <h5><i class="bi bi-bar-chart"></i> Clientes por Mês</h5>
+                <div id="graficoBarrasClientes" style="height: 250px;">
+                    <canvas id="barrasChartClientes"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Clientes Recentes -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-list"></i> Clientes Recentes</h5>
+            <div class="btn-group" role="group">
+                <button class="btn btn-outline-primary btn-sm" onclick="exportarClientesRecentes()">
+                    <i class="bi bi-download"></i> Exportar
+                </button>
+                <button class="btn btn-outline-info btn-sm" onclick="gerarMapaClientes()">
+                    <i class="bi bi-map-fill"></i> Mapa
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>Plano</th>
+                            <th>Status</th>
+                            <th>Data Cadastro</th>
+                            <th>Valor Mensal</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if clientes_recentes %}
+                            {% for cliente in clientes_recentes %}
+                            <tr>
+                                <td>{{ cliente.id }}</td>
+                                <td>{{ cliente.nome }}</td>
+                                <td>
+                                    {% if cliente.plano_id %}
+                                        <span class="badge bg-primary">{{ cliente.plano_nome or "Plano" }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Sem plano</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if cliente.ativo else 'warning' }}">
+                                        {{ 'Ativo' if cliente.ativo else 'Inativo' }}
+                                    </span>
+                                </td>
+                                <td>{{ cliente.data_criacao.strftime('%d/%m/%Y') if cliente.data_criacao else 'N/A' }}</td>
+                                <td>
+                                    {% if cliente.plano_id and cliente.plano_valor %}
+                                        R$ {{ "%.2f"|format(cliente.plano_valor) }}
+                                    {% else %}
+                                        R$ 0,00
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="/clientes/{{ cliente.id }}/detalhes" class="btn btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Detalhes
+                                        </a>
+                                        <a href="/clientes/{{ cliente.id }}/editar" class="btn btn-outline-warning">
+                                            <i class="bi bi-pencil"></i> Editar
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    Nenhum cliente encontrado
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indicadores de Performance -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-graph-up"></i> Indicadores de Crescimento</h6>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h4 text-success">{{ stats.novos_mes or 0 }}</div>
+                            <small class="text-muted">Novos este mês</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 text-danger">{{ stats.cancelados_mes or 0 }}</div>
+                            <small class="text-muted">Cancelados este mês</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-cash"></i> Receita Mensal</h6>
+                    <div class="h3 text-primary">
+                        R$ {{ "%.2f"|format(stats.receita_mensal or 0) }}
+                    </div>
+                    <small class="text-muted">Estimativa baseada em planos ativos</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-geo-alt"></i> Distribuição Geográfica</h6>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h4 text-info">{{ stats.clientes_urbanos or 0 }}</div>
+                            <small class="text-muted">Área urbana</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 text-warning">{{ stats.clientes_rurais or 0 }}</div>
+                            <small class="text-muted">Área rural</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Gráfico de Pizza para Clientes
+    const pizzaCtxClientes = document.getElementById('pizzaChartClientes').getContext('2d');
+    new Chart(pizzaCtxClientes, {
+        type: 'doughnut',
+        data: {
+            labels: ['Ativos', 'Inativos'],
+            datasets: [{
+                data: [
+                    {{ stats.ativos or 0 }},
+                    {{ stats.inativos or 0 }}
+                ],
+                backgroundColor: ['#28a745', '#ffc107']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false
+        }
+    });
+
+    // Gráfico de Barras para Clientes por Mês
+    const barrasCtxClientes = document.getElementById('barrasChartClientes').getContext('2d');
+    new Chart(barrasCtxClientes, {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+            datasets: [{
+                label: 'Novos Clientes',
+                data: [12, 19, 15, 8, 22, 17, 14, 18, 25, 20, 16, 23],
+                backgroundColor: '#007bff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    function aplicarFiltros() {
+        const status = document.getElementById('filterStatus').value;
+        const periodo = document.getElementById('filterPeriodo').value;
+        const plano = document.getElementById('filterPlano').value;
+        
+        // Aqui você poderia fazer uma chamada AJAX para atualizar os dados
+        console.log('Filtros aplicados:', { status, periodo, plano });
+        showToast('Filtros aplicados com sucesso!', 'success');
+    }
+
+    function gerarRelatorioDetalhado() {
+        fetch('/relatorios/clientes/detalhado')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    exibirRelatorioDetalhado(data.relatorio);
+                } else {
+                    showToast('Erro ao gerar relatório: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Erro ao gerar relatório: ' + error, 'error');
+            });
+    }
+
+    function gerarResumoFinanceiro() {
+        fetch('/relatorios/clientes/financeiro')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    exibirResumoFinanceiro(data.relatorio);
+                } else {
+                    showToast('Erro ao gerar relatório: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Erro ao gerar relatório: ' + error, 'error');
+            });
+    }
+
+    function gerarRelatorioMapa() {
+        fetch('/relatorios/clientes/mapa')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    exibirRelatorioMapa(data.relatorio);
+                } else {
+                    showToast('Erro ao gerar relatório: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Erro ao gerar relatório: ' + error, 'error');
+            });
+    }
+
+    function exibirRelatorioDetalhado(relatorio) {
+        const modalContent = `
+            <div class="modal-header">
+                <h5 class="modal-title" style="color: #000;">Relatório Detalhado de Clientes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="color: #000;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Métricas Gerais</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Total de Clientes:</span>
+                                <span class="badge bg-primary" style="color: #fff;">${relatorio.total_clientes}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Clientes Ativos:</span>
+                                <span class="badge bg-success" style="color: #fff;">${relatorio.clientes_ativos}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Clientes Inativos:</span>
+                                <span class="badge bg-warning" style="color: #000;">${relatorio.clientes_inativos}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Receita Mensal Estimada:</span>
+                                <span class="badge bg-info" style="color: #fff;">R$ ${relatorio.receita_mensal_estimada.toFixed(2)}</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Distribuição por Plano</h6>
+                        <ul class="list-group">
+                            ${Object.entries(relatorio.clientes_por_plano).map(([plano, quantidade]) => `
+                                <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                    <span style="color: #000;">${plano}:</span>
+                                    <span class="badge bg-secondary" style="color: #fff;">${quantidade}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Distribuição por Status</h6>
+                        <ul class="list-group">
+                            ${Object.entries(relatorio.clientes_por_status).map(([status, quantidade]) => `
+                                <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                    <span style="color: #000;">${status}:</span>
+                                    <span class="badge ${status === 'Ativo' ? 'bg-success' : 'bg-warning'}" style="color: ${status === 'Ativo' ? '#fff' : '#000'};">${quantidade}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Distribuição por Cidade</h6>
+                        <ul class="list-group">
+                            ${Object.entries(relatorio.clientes_por_cidade).map(([cidade, quantidade]) => `
+                                <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                    <span style="color: #000;">${cidade}:</span>
+                                    <span class="badge bg-info" style="color: #fff;">${quantidade}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        `;
+        
+        exibirModal('modalRelatorioDetalhado', modalContent);
+    }
+
+    function exibirResumoFinanceiro(relatorio) {
+        const modalContent = `
+            <div class="modal-header">
+                <h5 class="modal-title" style="color: #000;">Resumo Financeiro</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="color: #000;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Receita</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Receita Mensal:</span>
+                                <span class="badge bg-primary" style="color: #fff;">R$ ${relatorio.receita_mensal_estimada.toFixed(2)}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Receita Anual:</span>
+                                <span class="badge bg-info" style="color: #fff;">R$ ${relatorio.receita_anual_estimada.toFixed(2)}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Valor Médio Mensal:</span>
+                                <span class="badge bg-success" style="color: #fff;">R$ ${relatorio.valor_medio_mensal.toFixed(2)}</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Clientes por Plano</h6>
+                        <ul class="list-group">
+                            ${Object.entries(relatorio.planos_ativos).map(([plano, dados]) => `
+                                <li class="list-group-item" style="color: #000;">
+                                    <div class="d-flex justify-content-between" style="color: #000;">
+                                        <span style="color: #000;">${plano}</span>
+                                        <span class="badge bg-secondary" style="color: #fff;">${dados.quantidade}</span>
+                                    </div>
+                                    <div class="text-muted small" style="color: #666;">Receita: R$ ${dados.receita_mensal.toFixed(2)}</div>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Tipos de Clientes</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Com Plano:</span>
+                                <span class="badge bg-success" style="color: #fff;">${relatorio.clientes_com_plano}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Sem Plano:</span>
+                                <span class="badge bg-warning" style="color: #000;">${relatorio.clientes_sem_plano}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        `;
+        
+        exibirModal('modalResumoFinanceiro', modalContent);
+    }
+
+    function exibirRelatorioMapa(relatorio) {
+        const modalContent = `
+            <div class="modal-header">
+                <h5 class="modal-title" style="color: #000;">Distribuição Geográfica</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="color: #000;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Tipos de Moradia</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Área Urbana:</span>
+                                <span class="badge bg-info" style="color: #fff;">${relatorio.clientes_urbanos}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                <span style="color: #000;">Área Rural:</span>
+                                <span class="badge bg-warning" style="color: #000;">${relatorio.clientes_rurais}</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Total de Clientes</h6>
+                        <div class="text-center">
+                            <div class="display-4 text-primary" style="color: #007bff !important;">${relatorio.total_clientes}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Clientes por Cidade</h6>
+                        <ul class="list-group">
+                            ${Object.entries(relatorio.clientes_por_cidade).map(([cidade, quantidade]) => `
+                                <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                    <span style="color: #000;">${cidade}:</span>
+                                    <span class="badge bg-info" style="color: #fff;">${quantidade}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 style="color: #000;">Clientes por Bairro</h6>
+                        <ul class="list-group">
+                            ${Object.entries(relatorio.clientes_por_bairro).map(([bairro, quantidade]) => `
+                                <li class="list-group-item d-flex justify-content-between" style="color: #000;">
+                                    <span style="color: #000;">${bairro}:</span>
+                                    <span class="badge bg-secondary" style="color: #fff;">${quantidade}</span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        `;
+        
+        exibirModal('modalRelatorioMapa', modalContent);
+    }
+
+    function exibirModal(id, content) {
+        // Remover modal existente se houver
+        const existingModal = document.getElementById(id);
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Criar novo modal
+        const modalDiv = document.createElement('div');
+        modalDiv.className = 'modal fade';
+        modalDiv.id = id;
+        modalDiv.tabIndex = -1;
+        modalDiv.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    ${content}
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modalDiv);
+        
+        // Inicializar e mostrar modal
+        const modal = new bootstrap.Modal(modalDiv);
+        modal.show();
+    }
+
+    function exportarPDFClientes() {
+        showToast('Gerando PDF de clientes...', 'info');
+        window.open('/relatorios/clientes/exportar/pdf', '_blank');
+    }
+
+    function exportarCSVClientes() {
+        window.location.href = '/relatorios/clientes/exportar/csv';
+    }
+
+    function exportarClientesRecentes() {
+        window.location.href = '/relatorios/clientes/recentes/exportar/csv';
+    }
+
+    function gerarMapaClientes() {
+        window.open('/relatorios/clientes/mapa', '_blank');
+    }
+
+    // Carregar opções de planos
+    document.addEventListener('DOMContentLoaded', function() {
+        // Simulação de carregamento de planos (em produção, isso viria da API)
+        const planos = [
+            { id: 1, nome: 'Básico' },
+            { id: 2, nome: 'Intermediário' },
+            { id: 3, nome: 'Premium' }
+        ];
+        
+        const select = document.getElementById('filterPlano');
+        planos.forEach(plano => {
+            const option = document.createElement('option');
+            option.value = plano.id;
+            option.textContent = plano.nome;
+            select.appendChild(option);
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+
+{% block title %}Editar OS #{{ ordem.id }} - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-white h3 mb-0">
+            <i class="bi bi-pencil-square me-2"></i>Editar Ordem de Serviço #{{ ordem.id }}
+        </h1>
+        <a href="/ordens-servico/{{ ordem.id }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Voltar
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card bg-transparent border-secondary">
+                <div class="modal-header border-secondary bg-dark text-white">
+                    <h5 class="modal-title h6">
+                        <i class="bi bi-clipboard-plus me-2"></i>Detalhes da OS
+                    </h5>
+                </div>
+                <div class="card-body text-white">
+                    <form method="POST" action="/ordens-servico/{{ ordem.id }}/editar" id="editarOrdemForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="text-secondary small d-block">Cliente</label>
+                                <select class="form-select bg-dark text-white border-secondary" name="cliente_id" required>
+                                    <option value="">Selecione um cliente</option>
+                                    {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}" {% if cliente.id == ordem.cliente_id %}selected{% endif %}>
+                                        {{ cliente.nome }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="text-secondary small d-block">Tipo de Serviço</label>
+                                <select class="form-select bg-dark text-white border-secondary" name="tipo_servico" required>
+                                    <option value="instalacao" {% if ordem.tipo_servico == 'instalacao' %}selected{% endif %}>Instalação</option>
+                                    <option value="suporte" {% if ordem.tipo_servico == 'suporte' %}selected{% endif %}>Suporte</option>
+                                    <option value="manutencao" {% if ordem.tipo_servico == 'manutencao' %}selected{% endif %}Manutenção</option>
+                                    <option value="troca_plano" {% if ordem.tipo_servico == 'troca_plano' %}selected{% endif %}>Troca de Plano</option>
+                                    <option value="outro" {% if ordem.tipo_servico == 'outro' %}selected{% endif %}>Outro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-secondary small d-block">Título</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" name="titulo" value="{{ ordem.titulo }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-secondary small d-block">Descrição</label>
+                            <textarea class="form-control bg-dark text-white border-secondary" name="descricao" rows="4" required>{{ ordem.descricao }}</textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="text-secondary small d-block">Prioridade</label>
+                                <select class="form-select bg-dark text-white border-secondary" name="prioridade">
+                                    <option value="baixa" {% if ordem.prioridade == 'baixa' %}selected{% endif %}>Baixa</option>
+                                    <option value="normal" {% if ordem.prioridade == 'normal' %}selected{% endif %}>Normal</option>
+                                    <option value="alta" {% if ordem.prioridade == 'alta' %}selected{% endif %}>Alta</option>
+                                    <option value="urgente" {% if ordem.prioridade == 'urgente' %}selected{% endif %}>Urgente</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="text-secondary small d-block">Data Agendamento</label>
+                                <input type="datetime-local" class="form-control bg-dark text-white border-secondary" name="data_agendamento" value="{{ ordem.data_agendamento.strftime('%Y-%m-%dT%H:%M') if ordem.data_agendamento else '' }}">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="text-secondary small d-block">Técnico Responsável</label>
+                                <input type="text" class="form-control bg-dark text-white border-secondary" name="tecnico_responsavel" value="{{ ordem.tecnico_responsavel or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-secondary small d-block">Endereço de Atendimento</label>
+                            <input type="text" class="form-control bg-dark text-white border-secondary" name="endereco_servico" value="{{ ordem.endereco_servico or '' }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="text-secondary small d-block">Observações Internas</label>
+                            <textarea class="form-control bg-dark text-white border-secondary" name="observacoes" rows="2">{{ ordem.observacoes or '' }}</textarea>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="text-secondary small d-block">Valor do Serviço (R$)</label>
+                                <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary" name="valor" value="{{ ordem.valor or '' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="text-secondary small d-block">Custo Interno (R$)</label>
+                                <input type="number" step="0.01" class="form-control bg-dark text-white border-secondary" name="custo" value="{{ ordem.custo or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i>Salvar Alterações
+                            </button>
+                            <a href="/ordens-servico/{{ ordem.id }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-transparent border-secondary sticky-top" style="top: 20px; z-index: 100;">
+                <div class="modal-header border-secondary bg-dark text-white">
+                    <h5 class="modal-title h6">
+                        <i class="bi bi-info-circle me-2"></i>Informações Atuais
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-secondary small d-block">Status</label>
+                        <span class="badge {% if ordem.status == 'aberta' %}bg-warning text-dark{% elif ordem.status == 'em_andamento' %}bg-info{% elif ordem.status == 'concluida' %}bg-success{% else %}bg-danger{% endif %}">
+                            {% if ordem.status == 'aberta' %}Aberta
+                            {% elif ordem.status == 'em_andamento' %}Em Andamento
+                            {% elif ordem.status == 'concluida' %}Concluída
+                            {% elif ordem.status == 'cancelada' %}Cancelada
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-secondary small d-block">Data Criação</label>
+                        <span>{{ ordem.data_criacao.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
+                    {% if ordem.cliente_nome %}
+                    <div class="mb-0">
+                        <label class="text-secondary small d-block">Cliente</label>
+                        <span>{{ ordem.cliente_nome }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Validação do formulário
+    document.getElementById('editarOrdemForm').addEventListener('submit', function(e) {
+        const titulo = this.querySelector('[name="titulo"]').value;
+        const descricao = this.querySelector('[name="descricao"]').value;
+        const cliente_id = this.querySelector('[name="cliente_id"]').value;
+        
+        if (!cliente_id) {
+            e.preventDefault();
+            alert('Por favor, selecione um cliente.');
+            return;
+        }
+        
+        if (titulo.length < 3) {
+            e.preventDefault();
+            alert('O título deve ter pelo menos 3 caracteres.');
+            return;
+        }
+        
+        if (descricao.length < 10) {
+            e.preventDefault();
+            alert('A descrição deve ter pelo menos 10 caracteres.');
+            return;
+        }
+    });
+</script>
+{% endblock %}

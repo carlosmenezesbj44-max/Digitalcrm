@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+
+{% block title %}{{ 'Editar Servidor' if servidor else 'Novo Servidor' }} - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-transparent border-secondary">
+                <div class="modal-header border-secondary bg-dark text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-server me-2"></i>{{ 'Editar Servidor' if servidor else 'Cadastrar Novo Servidor' }}
+                    </h5>
+                </div>
+                <div class="card-body text-white">
+                    {% if error %}
+                    <div class="alert alert-danger bg-danger bg-opacity-10 border-danger text-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="{{ '/servidores/' + (servidor.id|string) + '/editar' if servidor else '/servidores/novo' }}">
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label for="nome" class="form-label text-light">Nome do Servidor</label>
+                                <input type="text" class="form-control bg-transparent border-secondary text-white" id="nome" name="nome" value="{{ servidor.nome if servidor else '' }}" placeholder="Ex: BNG Principal" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="ip" class="form-label text-light">IP do Servidor</label>
+                                <input type="text" class="form-control bg-transparent border-secondary text-white" id="ip" name="ip" value="{{ servidor.ip if servidor else '' }}" placeholder="0.0.0.0" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="tipo_conexao" class="form-label text-light">Tipo de Conexão</label>
+                                <select class="form-select bg-dark border-secondary text-white" id="tipo_conexao" name="tipo_conexao" required>
+                                    <option value="" class="bg-dark">Selecione...</option>
+                                    <option value="mikrotik" class="bg-dark" {{ 'selected' if servidor and servidor.tipo_conexao == 'mikrotik' else '' }}>MikroTik</option>
+                                    <option value="accel-ppp" class="bg-dark" {{ 'selected' if servidor and servidor.tipo_conexao == 'accel-ppp' else '' }}>Accel-PPP</option>
+                                    <option value="huawei" class="bg-dark" {{ 'selected' if servidor and servidor.tipo_conexao == 'huawei' else '' }}>Huawei</option>
+                                    <option value="cisco" class="bg-dark" {{ 'selected' if servidor and servidor.tipo_conexao == 'cisco' else '' }}>Cisco</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="tipo_acesso" class="form-label text-light">Tipo de Acesso</label>
+                                <select class="form-select bg-dark border-secondary text-white" id="tipo_acesso" name="tipo_acesso" required>
+                                    <option value="" class="bg-dark">Selecione...</option>
+                                    <option value="ssh" class="bg-dark" {{ 'selected' if servidor and servidor.tipo_acesso == 'ssh' else '' }}>SSH</option>
+                                    <option value="telnet" class="bg-dark" {{ 'selected' if servidor and servidor.tipo_acesso == 'telnet' else '' }}>Telnet</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="usuario" class="form-label text-light">Usuário</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-person"></i></span>
+                                    <input type="text" class="form-control bg-transparent border-secondary text-white" id="usuario" name="usuario" value="{{ servidor.usuario if servidor else '' }}" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="senha" class="form-label text-light">Senha</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark border-secondary text-light"><i class="bi bi-key"></i></span>
+                                    <input type="password" class="form-control bg-transparent border-secondary text-white" id="senha" name="senha" value="{{ servidor.senha if servidor else '' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-light d-block">Alterar Nome</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="alterar_nome" id="alterar_nome_sim" value="sim" {{ 'checked' if not servidor or servidor.alterar_nome else '' }}>
+                                    <label class="form-check-label" for="alterar_nome_sim">Sim</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="alterar_nome" id="alterar_nome_nao" value="nao" {{ 'checked' if servidor and not servidor.alterar_nome else '' }}>
+                                    <label class="form-check-label" for="alterar_nome_nao">Não</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-light d-block">Status do Servidor</label>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="ativo" id="ativo_sim" value="sim" {{ 'checked' if not servidor or servidor.ativo else '' }}>
+                                    <label class="form-check-label" for="ativo_sim">Ativo</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="ativo" id="ativo_nao" value="nao" {{ 'checked' if servidor and not servidor.ativo else '' }}>
+                                    <label class="form-check-label" for="ativo_nao">Inativo</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-2"></i>{{ 'Atualizar Servidor' if servidor else 'Salvar Servidor' }}
+                            </button>
+                            <a href="/servidores" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-arrow-left me-2"></i>Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

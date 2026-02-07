@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+
+{% block title %}Novo Plano - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card bg-transparent border-secondary">
+                <div class="modal-header border-secondary bg-dark text-white">
+                    <h5 class="modal-title">
+                        <i class="bi bi-wifi me-2"></i>Cadastrar Novo Plano
+                    </h5>
+                </div>
+                <div class="card-body text-white">
+                    {% if error %}
+                    <div class="alert alert-danger bg-danger bg-opacity-10 border-danger text-danger" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>{{ error }}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="/planos/novo">
+                        <div class="mb-3">
+                            <label for="nome" class="form-label text-light">Nome do Plano</label>
+                            <input type="text" class="form-control bg-transparent border-secondary text-white" id="nome" name="nome" placeholder="Ex: Fibra 500 Mega" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="velocidade_download" class="form-label text-light">Velocidade Download (Mbps)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control bg-transparent border-secondary text-white" id="velocidade_download" name="velocidade_download" min="1" required>
+                                    <span class="input-group-text bg-dark border-secondary text-light">Mbps</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="velocidade_upload" class="form-label text-light">Velocidade Upload (Mbps)</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control bg-transparent border-secondary text-white" id="velocidade_upload" name="velocidade_upload" min="1" required>
+                                    <span class="input-group-text bg-dark border-secondary text-light">Mbps</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="valor_mensal" class="form-label text-light">Valor Mensal (R$)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary text-light">R$</span>
+                                <input type="number" step="0.01" class="form-control bg-transparent border-secondary text-white" id="valor_mensal" name="valor_mensal" min="0" placeholder="0,00" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="descricao" class="form-label text-light">Descrição</label>
+                            <textarea class="form-control bg-transparent border-secondary text-white" id="descricao" name="descricao" rows="3" placeholder="Detalhes do plano..."></textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label text-light d-block">Status do Plano</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="ativo" id="ativo_sim" value="sim" checked>
+                                <label class="form-check-label" for="ativo_sim">Ativo</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="ativo" id="ativo_nao" value="nao">
+                                <label class="form-check-label" for="ativo_nao">Inativo</label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-2"></i>Salvar Plano
+                            </button>
+                            <a href="/planos" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-arrow-left me-2"></i>Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

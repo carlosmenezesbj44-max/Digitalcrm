@@ -1,0 +1,425 @@
+{% extends "layout.html" %}
+
+{% block title %}OS #{{ ordem.id }} - {{ ordem.titulo }} - CRM Provedor{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0" style="color: var(--text-main);">
+                <i class="bi bi-clipboard-check"></i> Ordem de Serviço #{{ ordem.id }}
+            </h1>
+            <p style="color: var(--text-secondary); opacity: 0.8;" class="mb-0">{{ ordem.titulo }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if ordem.status == 'aberta' %}
+            <button class="btn btn-success" onclick="iniciarOS({{ ordem.id }})">
+                <i class="bi bi-play-circle"></i> Iniciar OS
+            </button>
+            {% elif ordem.status == 'em_andamento' %}
+            <button class="btn btn-primary" onclick="scrollToChecklist()">
+                <i class="bi bi-list-check"></i> <span id="btn-tarefas">Acompanhar Tarefas</span>
+            </button>
+            <button class="btn btn-warning" onclick="aguardandoPeca({{ ordem.id }})">
+                <i class="bi bi-clock-history"></i> Aguardando Peça
+            </button>
+            <button class="btn btn-success" id="btn-concluir" onclick="concluirOS({{ ordem.id }})">
+                <i class="bi bi-check-circle"></i> Concluir
+            </button>
+            {% elif ordem.status == 'aguardando_peca' %}
+            <button class="btn btn-info" onclick="retomarOS({{ ordem.id }})">
+                <i class="bi bi-arrow-repeat"></i> Retomar Serviço
+            </button>
+            <button class="btn btn-success" onclick="concluirOS({{ ordem.id }})">
+                <i class="bi bi-check-circle"></i> Concluir
+            </button>
+            {% elif ordem.status == 'concluida' %}
+            <span class="badge bg-success fs-6 py-2 px-3">
+                <i class="bi bi-check-circle"></i> OS Concluída
+            </span>
+            {% elif ordem.status == 'cancelada' %}
+            <span class="badge bg-danger fs-6 py-2 px-3">
+                <i class="bi bi-x-circle"></i> OS Cancelada
+            </span>
+            {% endif %}
+            <a href="/ordens-servico/{{ ordem.id }}/editar" class="btn btn-outline-secondary">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a href="/ordens-servico" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informações da OS -->
+        <div class="col-md-8">
+            <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-secondary small d-block">Cliente</label>
+                            <span class="fw-bold">{{ ordem.cliente_nome or 'Cliente #' ~ ordem.cliente_id }}</span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-secondary small d-block">Tipo de Serviço</label>
+                            <span class="badge bg-primary">{{ ordem.tipo_servico|capitalize }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-secondary small d-block">Descrição</label>
+                        <p class="mb-0">{{ ordem.descricao }}</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="text-secondary small d-block">Prioridade</label>
+                            <span class="badge {% if ordem.prioridade == 'urgente' %}bg-danger{% elif ordem.prioridade == 'alta' %}bg-warning{% elif ordem.prioridade == 'normal' %}bg-info{% else %}bg-secondary{% endif %}">
+                                {{ ordem.prioridade|capitalize }}
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-secondary small d-block">Técnico Responsável</label>
+                            <span>{{ ordem.tecnico_responsavel or 'Não atribuído' }}</span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="text-secondary small d-block">Data Agendamento</label>
+                            <span>{{ ordem.data_agendamento.strftime('%d/%m/%Y %H:%M') if ordem.data_agendamento else 'Não agendada' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Checklist de Execução -->
+            <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check me-2"></i>Checklist de Execução
+                        <span class="badge bg-info float-end" id="checklistProgress{{ ordem.id }}">0 de 0</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Progress bar -->
+                    <div class="mb-3">
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" id="checklistProgressBar{{ ordem.id }}" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Checklist items -->
+                    <ul class="list-group list-group-flush" id="checklistItems{{ ordem.id }}">
+                        <li class="list-group-item bg-transparent text-white text-center py-4">
+                            <i class="bi bi-hourglass-split me-2"></i>Carregando checklist...
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Observações -->
+            {% if ordem.observacoes %}
+            <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0"><i class="bi bi-sticky me-2"></i>Observações</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ ordem.observacoes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm sticky-top" style="background: var(--card-bg); top: 20px; z-index: 100;">
+                <div class="card-header bg-transparent border-secondary">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-secondary small d-block">Status</label>
+                        <span class="badge {% if ordem.status == 'aberta' %}bg-warning text-dark{% elif ordem.status == 'em_andamento' %}bg-info{% elif ordem.status == 'aguardando_peca' %}bg-warning text-dark{% elif ordem.status == 'concluida' %}bg-success{% else %}bg-danger{% endif %} fs-6">
+                            {% if ordem.status == 'aberta' %}Aberta
+                            {% elif ordem.status == 'em_andamento' %}Em Andamento
+                            {% elif ordem.status == 'aguardando_peca' %}Aguardando Peça
+                            {% elif ordem.status == 'concluida' %}Concluída
+                            {% elif ordem.status == 'cancelada' %}Cancelada
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-secondary small d-block">Data Criação</label>
+                        <span>{{ ordem.data_criacao.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
+                    {% if ordem.data_inicio %}
+                    <div class="mb-3">
+                        <label class="text-secondary small d-block">Data Início</label>
+                        <span>{{ ordem.data_inicio.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
+                    {% endif %}
+                    {% if ordem.data_conclusao %}
+                    <div class="mb-3">
+                        <label class="text-secondary small d-block">Data Conclusão</label>
+                        <span>{{ ordem.data_conclusao.strftime('%d/%m/%Y %H:%M') }}</span>
+                    </div>
+                    {% endif %}
+                    {% if ordem.valor %}
+                    <div class="mb-0">
+                        <label class="text-secondary small d-block">Valor</label>
+                        <span class="fw-bold">R$ {{ ordem.valor|number_format(2, ',', '.') }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Scroll to checklist section
+function scrollToChecklist() {
+    const checklistSection = document.getElementById('checklist-section');
+    if (checklistSection) {
+        checklistSection.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+// Update button with checklist progress
+function updateButtonProgress(summary) {
+    const btnTarefas = document.getElementById('btn-tarefas');
+    if (btnTarefas && summary) {
+        btnTarefas.textContent = `Tarefas (${summary.completed}/${summary.total})`;
+        
+        // Update "Concluir" button state
+        const btnConcluir = document.getElementById('btn-concluir');
+        if (btnConcluir && summary.is_complete) {
+            btnConcluir.disabled = false;
+            btnConcluir.classList.remove('btn-secondary');
+            btnConcluir.classList.add('btn-success');
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    {% if ordem.status in ['em_andamento', 'aguardando_peca'] %}
+    loadChecklist({{ ordem.id }}, '{{ ordem.tipo_servico }}');
+    {% endif %}
+});
+
+function loadChecklist(ordemId, tipoServico) {
+    const token = localStorage.getItem('access_token');
+    
+    fetch(`/api/v1/checklist/${ordemId}?tipo_servico=${tipoServico}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Erro ao carregar checklist');
+        return response.json();
+    })
+    .then(data => {
+        renderChecklist(ordemId, data);
+        updateButtonProgress(data.summary);
+    })
+    .catch(error => {
+        console.error('Erro ao carregar checklist:', error);
+        document.getElementById(`checklistItems${ordemId}`).innerHTML = `
+            <li class="list-group-item bg-transparent text-white text-center py-4">
+                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                Erro ao carregar checklist. Clique em "Acompanhar Tarefas" para inicializar.
+            </li>
+        `;
+    });
+}
+
+function renderChecklist(ordemId, data) {
+    const container = document.getElementById(`checklistItems${ordemId}`);
+    const progressLabel = document.getElementById(`checklistProgress${ordemId}`);
+    const progressBar = document.getElementById(`checklistProgressBar${ordemId}`);
+    
+    // Update progress
+    const summary = data.summary;
+    progressLabel.textContent = summary.completed + ' de ' + summary.total;
+    progressBar.style.width = summary.percentage + '%';
+    
+    if (summary.is_complete) {
+        progressLabel.classList.remove('bg-info');
+        progressLabel.classList.add('bg-success');
+        progressLabel.innerHTML = '<i class="bi bi-check-circle me-1"></i>Completo';
+    }
+    
+    // Render items
+    let html = '';
+    data.items.forEach(item => {
+        const checked = item.completado ? 'checked' : '';
+        const completedClass = item.completado ? 'completed' : '';
+        const completedBy = item.completado_por ? '<small class="text-muted d-block">Por: ' + item.completado_por + '</small>' : '';
+        
+        html += `
+            <li class="list-group-item bg-transparent ${completedClass}" id="checklistItem${ordemId}_${item.id}">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" ${checked} 
+                           id="check_${ordemId}_${item.id}"
+                           onchange="toggleChecklistItem(${ordemId}, ${item.id})"
+                           style="cursor: pointer;">
+                    <label class="form-check-label" for="check_${ordemId}_${item.id}" style="cursor: pointer;">
+                        <strong>${item.nome_tarefa}</strong>
+                        ${item.descricao ? '<br><small class="text-muted">' + item.descricao + '</small>' : ''}
+                        ${completedBy}
+                    </label>
+                </div>
+            </li>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function toggleChecklistItem(ordemId, itemId) {
+    const token = localStorage.getItem('access_token');
+    const checkbox = document.getElementById('check_' + ordemId + '_' + itemId);
+    
+    // Get técnico logado
+    const tecnico = localStorage.getItem('usuario_nome') || 'Técnico';
+    
+    fetch(`/api/v1/checklist/${ordemId}/items/${itemId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            completado_por: tecnico
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Erro ao atualizar item');
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Reload checklist to update progress
+            loadChecklist(ordemId, '{{ ordem.tipo_servico }}');
+        } else {
+            // Revert checkbox state
+            checkbox.checked = !checkbox.checked;
+            showToast(data.message || 'Erro ao atualizar item', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao atualizar item:', error);
+        checkbox.checked = !checkbox.checked;
+        showToast('Erro ao atualizar item', 'error');
+    });
+}
+
+function iniciarOS(ordemId) {
+    showLoading('Iniciando OS...');
+    const tecnico = localStorage.getItem('usuario_nome') || 'Técnico';
+    
+    fetch(`/ordens-servico/${ordemId}/iniciar`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ tecnico: tecnico })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('OS iniciada com sucesso!', 'success');
+            location.reload();
+        } else {
+            showToast(data.message || 'Erro ao iniciar OS', 'error');
+        }
+    })
+    .catch(() => showToast('Erro ao iniciar OS', 'error'))
+    .finally(() => hideLoading());
+}
+
+function aguardarPeca(ordemId) {
+    const observacoes = prompt('Motivo de aguardando peça:');
+    if (observacoes === null) return;
+    
+    showLoading('Salvando...');
+    fetch(`/ordens-servico/${ordemId}/aguardando-peca`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ observacoes: observacoes })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Status atualizado!', 'success');
+            location.reload();
+        } else {
+            showToast(data.message || 'Erro', 'error');
+        }
+    })
+    .catch(() => showToast('Erro', 'error'))
+    .finally(() => hideLoading());
+}
+
+function retomarOS(ordemId) {
+    showLoading('Retomando OS...');
+    fetch(`/ordens-servico/${ordemId}/retomar`, {
+        method: 'POST'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('OS retomada!', 'success');
+            location.reload();
+        } else {
+            showToast(data.message || 'Erro', 'error');
+        }
+    })
+    .catch(() => showToast('Erro', 'error'))
+    .finally(() => hideLoading());
+}
+
+function concluirOS(ordemId) {
+    const observacoes = prompt('Observações de conclusão (opcional):');
+    
+    showLoading('Concluindo OS...');
+    fetch(`/ordens-servico/${ordemId}/concluir`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ observacoes: observacoes || '' })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            showToast('OS concluída com sucesso!', 'success');
+            location.href = '/ordens-servico';
+        } else {
+            showToast(data.message || 'Erro ao concluir', 'error');
+        }
+    })
+    .catch(() => showToast('Erro ao concluir', 'error'))
+    .finally(() => hideLoading());
+}
+</script>
+
+<style>
+.list-group-item.completed {
+    opacity: 0.6;
+}
+
+.list-group-item.completed .form-check-label {
+    text-decoration: line-through;
+}
+
+.form-check-input:checked {
+    background-color: #198754;
+    border-color: #198754;
+}
+</style>
+{% endblock %}

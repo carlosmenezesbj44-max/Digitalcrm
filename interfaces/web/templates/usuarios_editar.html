@@ -1,0 +1,124 @@
+{% extends "layout.html" %}
+
+{% block title %}Editar Usuário - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .form-label {
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0"><i class="bi bi-person-gear"></i> Editar Usuário</h1>
+            <p class="text-muted mb-0">Atualize dados básicos do usuário</p>
+        </div>
+        <a href="/usuarios" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm form-card">
+        <div class="card-body p-4">
+            <form id="userEditForm" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Nome completo</label>
+                    <input type="text" class="form-control" id="nomeCompleto" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" disabled>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Perfil</label>
+                    <input type="text" class="form-control" id="role" disabled>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="ativo">
+                        <option value="true">Ativo</option>
+                        <option value="false">Inativo</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Salvar alterações</button>
+                    <button type="button" class="btn btn-outline-secondary" id="reloadUser">Recarregar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const usuarioId = {{ usuario_id }};
+
+    function showMessage(message, type = 'info') {
+        if (typeof showToast === 'function') {
+            showToast(message, type);
+        } else {
+            alert(message);
+        }
+    }
+
+    async function loadUser() {
+        const response = await fetch(`/api/usuarios/${usuarioId}`);
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showMessage(data.detail || 'Usuário não encontrado.', 'error');
+            return;
+        }
+
+        const user = await response.json();
+        document.getElementById('nomeCompleto').value = user.nome_completo || '';
+        document.getElementById('email').value = user.email || '';
+        document.getElementById('username').value = user.username || '';
+        document.getElementById('role').value = user.role || '';
+        document.getElementById('ativo').value = user.ativo ? 'true' : 'false';
+    }
+
+    document.getElementById('reloadUser').addEventListener('click', loadUser);
+
+    document.getElementById('userEditForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const payload = {
+            nome_completo: document.getElementById('nomeCompleto').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            ativo: document.getElementById('ativo').value === 'true'
+        };
+
+        const response = await fetch(`/api/usuarios/${usuarioId}/editar`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            showMessage(data.detail || 'Erro ao salvar.', 'error');
+            return;
+        }
+
+        showMessage('Usuário atualizado com sucesso.', 'success');
+        loadUser();
+    });
+
+    document.addEventListener('DOMContentLoaded', loadUser);
+</script>
+{% endblock %}

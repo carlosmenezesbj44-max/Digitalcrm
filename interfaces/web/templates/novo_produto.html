@@ -1,0 +1,504 @@
+{% extends "layout.html" %}
+
+{% block title %}{% if produto %}Editar{% else %}Novo{% endif %} Produto - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos para o menu flutuante horizontal */
+    .floating-tabs {
+        position: sticky;
+        top: 20px;
+        z-index: 1000;
+        background: var(--card-bg);
+        border-radius: 12px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        padding: 12px;
+        margin-bottom: 30px;
+        border: 1px solid var(--border-color);
+    }
+
+    .floating-tabs .nav-tabs {
+        border-bottom: none;
+        margin-bottom: 0;
+        gap: 8px;
+    }
+
+    .floating-tabs .nav-link {
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-weight: 600;
+        color: var(--text-light);
+        opacity: 0.7;
+        background: transparent;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .floating-tabs .nav-link:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-main);
+    }
+
+    .floating-tabs .nav-link.active {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: 0 4px 12px rgba(13, 71, 161, 0.3);
+    }
+
+    .tab-content {
+        padding: 10px 0;
+    }
+
+    .tab-pane {
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Progress indicator */
+    .form-progress {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        padding: 0 10px;
+    }
+
+    .progress-step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+
+    .progress-step::before {
+        content: '';
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        right: -50%;
+        height: 2px;
+        background: var(--border-color);
+        z-index: 1;
+    }
+
+    .progress-step:last-child::before {
+        display: none;
+    }
+
+    .progress-step.completed::before {
+        background: #28a745;
+    }
+
+    .progress-dot {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--border-color);
+        color: var(--text-secondary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: bold;
+        position: relative;
+        z-index: 2;
+        margin: 0 auto 8px;
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .progress-step.completed .progress-dot {
+        background: #28a745;
+        color: white;
+    }
+
+    .progress-step.active .progress-dot {
+        background: var(--primary-color);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 0 0 4px rgba(13, 71, 161, 0.2);
+    }
+
+    .progress-label {
+        font-size: 12px;
+        color: var(--text-light);
+        opacity: 0.7;
+        margin-top: 4px;
+        font-weight: 500;
+    }
+
+    .progress-step.active .progress-label {
+        color: var(--primary-color);
+        font-weight: 700;
+    }
+
+    .progress-step.completed .progress-label {
+        color: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0" style="color: var(--text-main); font-weight: 700;">
+                        <i class="bi bi-box"></i> {% if produto %}Editar Produto{% else %}Cadastrar Novo Produto{% endif %}
+                    </h1>
+                    <p style="color: var(--text-secondary); opacity: 0.8;" class="mb-0">Preencha os dados técnicos e comerciais do produto</p>
+                </div>
+                <a href="/produtos" class="btn btn-outline-secondary border-secondary shadow-sm">
+                    <i class="bi bi-arrow-left"></i> Voltar
+                </a>
+            </div>
+
+            {% if error %}
+            <div class="alert alert-danger border-0 shadow-sm mb-4" role="alert" style="background-color: rgba(231, 76, 60, 0.1); color: #e74c3c;">
+                <i class="bi bi-exclamation-triangle"></i> {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Progress Indicator -->
+            <div class="form-progress">
+                <div class="progress-step active" data-step="1">
+                    <div class="progress-dot">1</div>
+                    <div class="progress-label">Básico</div>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="progress-dot">2</div>
+                    <div class="progress-label">Preços</div>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="progress-dot">3</div>
+                    <div class="progress-label">Estoque</div>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="progress-dot">4</div>
+                    <div class="progress-label">Fiscal</div>
+                </div>
+                <div class="progress-step" data-step="5">
+                    <div class="progress-dot">5</div>
+                    <div class="progress-label">Finalizar</div>
+                </div>
+            </div>
+
+            <!-- Floating Tabs Navigation -->
+            <div class="floating-tabs">
+                <ul class="nav nav-tabs" id="produtoTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="basico-tab" data-bs-toggle="tab" data-bs-target="#basico" type="button" role="tab">
+                            <i class="bi bi-info-circle"></i> Básico
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="precos-tab" data-bs-toggle="tab" data-bs-target="#precos" type="button" role="tab">
+                            <i class="bi bi-cash-coin"></i> Preços
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="estoque-tab" data-bs-toggle="tab" data-bs-target="#estoque" type="button" role="tab">
+                            <i class="bi bi-box-seam"></i> Estoque
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="fiscal-tab" data-bs-toggle="tab" data-bs-target="#fiscal" type="button" role="tab">
+                            <i class="bi bi-receipt"></i> Fiscal
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="finalizar-tab" data-bs-toggle="tab" data-bs-target="#finalizar" type="button" role="tab">
+                            <i class="bi bi-check-circle"></i> Finalizar
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <form method="post" action="{% if produto %}/produtos/{{ produto.id }}/editar{% else %}/produtos/novo{% endif %}" id="produtoForm">
+
+                <!-- Tab Content -->
+                <div class="tab-content" id="produtoTabContent">
+
+                    <!-- Aba Básico -->
+                    <div class="tab-pane fade show active" id="basico" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-info-circle"></i> Informações Principais</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="alert border-0 shadow-sm mb-4" style="background-color: rgba(52, 152, 219, 0.1); color: #3498db;">
+                                    <i class="bi bi-info-circle"></i> Informações básicas do produto. Campos marcados com * são obrigatórios.
+                                </div>
+                                <div class="mb-4">
+                                    <label for="nome" class="form-label text-light">
+                                        Nome do Produto <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" class="form-control border-secondary bg-transparent text-white" id="nome" name="nome" value="{% if produto %}{{ produto.nome }}{% endif %}" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-4">
+                                        <label for="categoria" class="form-label text-light">Categoria *</label>
+                                        <select class="form-select border-secondary bg-transparent text-white" id="categoria" name="categoria" required>
+                                            <option value="" class="bg-dark">Selecione uma categoria</option>
+                                            <option value="Equipamentos" class="bg-dark" {% if produto and produto.categoria == 'Equipamentos' %}selected{% endif %}>Equipamentos</option>
+                                            <option value="Consumíveis" class="bg-dark" {% if produto and produto.categoria == 'Consumíveis' %}selected{% endif %}>Consumíveis</option>
+                                            <option value="Serviços" class="bg-dark" {% if produto and produto.categoria == 'Serviços' %}selected{% endif %}>Serviços</option>
+                                            <option value="Outros" class="bg-dark" {% if produto and produto.categoria == 'Outros' %}selected{% endif %}>Outros</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-4">
+                                        <label for="unidade" class="form-label text-light">Unidade *</label>
+                                        <select class="form-select border-secondary bg-transparent text-white" id="unidade" name="unidade" required>
+                                            <option value="" class="bg-dark">Selecione uma unidade</option>
+                                            <option value="unidade" class="bg-dark" {% if produto and produto.unidade == 'unidade' %}selected{% endif %}>Unidade</option>
+                                            <option value="kg" class="bg-dark" {% if produto and produto.unidade == 'kg' %}selected{% endif %}>Kg</option>
+                                            <option value="m" class="bg-dark" {% if produto and produto.unidade == 'm' %}selected{% endif %}>M</option>
+                                            <option value="litro" class="bg-dark" {% if produto and produto.unidade == 'litro' %}selected{% endif %}>Litro</option>
+                                            <option value="m²" class="bg-dark" {% if produto and produto.unidade == 'm²' %}selected{% endif %}>M²</option>
+                                            <option value="m³" class="bg-dark" {% if produto and produto.unidade == 'm³' %}selected{% endif %}>M³</option>
+                                            <option value="hora" class="bg-dark" {% if produto and produto.unidade == 'hora' %}selected{% endif %}>Hora</option>
+                                            <option value="dia" class="bg-dark" {% if produto and produto.unidade == 'dia' %}selected{% endif %}>Dia</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label for="tipo" class="form-label text-light">Tipo *</label>
+                                    <input type="text" class="form-control border-secondary bg-transparent text-white" id="tipo" name="tipo" value="{% if produto %}{{ produto.tipo }}{% endif %}" placeholder="Ex: IPTV, Roteador, Conector" required>
+                                </div>
+                                <div class="mb-0">
+                                    <label for="descricao" class="form-label text-light">Descrição</label>
+                                    <textarea class="form-control border-secondary bg-transparent text-white" id="descricao" name="descricao" rows="3">{% if produto %}{{ produto.descricao }}{% endif %}</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Navegação da Aba -->
+                        <div class="d-flex justify-content-end gap-3">
+                            <button type="button" class="btn btn-primary btn-lg border-0 shadow-sm px-4" onclick="nextTab('precos')">
+                                Avançar <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Preços -->
+                    <div class="tab-pane fade" id="precos" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-cash-coin"></i> Preços e Custos</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="alert border-0 shadow-sm mb-4" style="background-color: rgba(46, 204, 113, 0.1); color: #2ecc71;">
+                                    <i class="bi bi-cash-coin"></i> Controle financeiro do produto.
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-4">
+                                        <label for="preco" class="form-label text-light">Preço de Venda (R$) *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text border-secondary bg-dark text-light">R$</span>
+                                            <input type="number" step="0.01" class="form-control border-secondary bg-transparent text-white" id="preco" name="preco" value="{% if produto and produto.preco %}{{ produto.preco }}{% else %}0.00{% endif %}" min="0" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-4">
+                                        <label for="preco_custo" class="form-label text-light">Preço de Custo (R$)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text border-secondary bg-dark text-light">R$</span>
+                                            <input type="number" step="0.01" class="form-control border-secondary bg-transparent text-white" id="preco_custo" name="preco_custo" value="{% if produto and produto.preco_custo %}{{ produto.preco_custo }}{% else %}0.00{% endif %}" min="0">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary btn-lg border-secondary shadow-sm px-4" onclick="prevTab('basico')">
+                                <i class="bi bi-arrow-left me-2"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary btn-lg border-0 shadow-sm px-4" onclick="nextTab('estoque')">
+                                Avançar <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Estoque -->
+                    <div class="tab-pane fade" id="estoque" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-box-seam"></i> Controle de Estoque</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-4">
+                                        <label for="sku" class="form-label text-light">Código SKU</label>
+                                        <input type="text" class="form-control border-secondary bg-transparent text-white" id="sku" name="sku" value="{% if produto %}{{ produto.sku }}{% endif %}" placeholder="Ex: PROD-001">
+                                    </div>
+                                    <div class="col-md-6 mb-4">
+                                        <label for="estoque" class="form-label text-light">Estoque Atual</label>
+                                        <input type="text" inputmode="decimal" pattern="^[0-9]+([\\.,][0-9]+)?$" class="form-control border-secondary bg-transparent text-white" id="estoque" name="estoque" value="{% if produto %}{{ produto.quantidade_estoque }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6 mb-4">
+                                        <label for="estoque_minimo" class="form-label text-light">Estoque Mínimo</label>
+                                        <input type="text" inputmode="decimal" pattern="^[0-9]+([\\.,][0-9]+)?$" class="form-control border-secondary bg-transparent text-white" id="estoque_minimo" name="estoque_minimo" value="{% if produto %}{{ produto.estoque_minimo }}{% endif %}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary btn-lg border-secondary shadow-sm px-4" onclick="prevTab('precos')">
+                                <i class="bi bi-arrow-left me-2"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary btn-lg border-0 shadow-sm px-4" onclick="nextTab('fiscal')">
+                                Avançar <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Fiscal -->
+                    <div class="tab-pane fade" id="fiscal" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-receipt"></i> Informações Fiscais</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-4">
+                                        <label for="ncm" class="form-label text-light">NCM</label>
+                                        <input type="text" class="form-control border-secondary bg-transparent text-white" id="ncm" name="ncm" value="{% if produto %}{{ produto.ncm }}{% endif %}" placeholder="8 dígitos">
+                                    </div>
+                                    <div class="col-md-6 mb-4">
+                                        <label for="cfop" class="form-label text-light">CFOP</label>
+                                        <input type="text" class="form-control border-secondary bg-transparent text-white" id="cfop" name="cfop" value="{% if produto %}{{ produto.cfop }}{% endif %}" placeholder="4 dígitos">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary btn-lg border-secondary shadow-sm px-4" onclick="prevTab('estoque')">
+                                <i class="bi bi-arrow-left me-2"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary btn-lg border-0 shadow-sm px-4" onclick="nextTab('finalizar')">
+                                Avançar <i class="bi bi-arrow-right ms-2"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Finalizar -->
+                    <div class="tab-pane fade" id="finalizar" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h5 class="modal-title fw-bold" style="color: var(--text-main);"><i class="bi bi-check-circle"></i> Revisão e Finalização</h5>
+                            </div>
+                            <div class="card-body p-4">
+                                <div class="alert border-0 shadow-sm mb-4" style="background-color: rgba(155, 89, 182, 0.1); color: #9b59b6;">
+                                    <i class="bi bi-info-circle"></i> Revise as informações acima e clique em salvar para finalizar o cadastro.
+                                </div>
+                                <div class="form-check form-switch mb-3">
+                                    <input class="form-check-input" type="checkbox" id="ativo" name="ativo" {% if not produto or produto.ativo %}checked{% endif %}>
+                                    <label class="form-check-label" for="ativo" style="color: var(--text-main);">Produto Ativo</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary btn-lg border-secondary shadow-sm px-4" onclick="prevTab('fiscal')">
+                                <i class="bi bi-arrow-left me-2"></i> Voltar
+                            </button>
+                            <button type="submit" class="btn btn-success btn-lg border-0 shadow-sm px-5">
+                                <i class="bi bi-save me-2"></i> {% if produto %}Atualizar Produto{% else %}Salvar Produto{% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function nextTab(tabId) {
+        const nextTab = document.querySelector(`#${tabId}-tab`);
+        if (nextTab) {
+            const tab = new bootstrap.Tab(nextTab);
+            tab.show();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    function prevTab(tabId) {
+        const prevTab = document.querySelector(`#${tabId}-tab`);
+        if (prevTab) {
+            const tab = new bootstrap.Tab(prevTab);
+            tab.show();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabs = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        const progressSteps = document.querySelectorAll('.progress-step');
+
+        tabs.forEach((tab, index) => {
+            tab.addEventListener('shown.bs.tab', function (event) {
+                // Update progress steps
+                progressSteps.forEach((step, stepIndex) => {
+                    step.classList.remove('active', 'completed');
+                    if (stepIndex < index) {
+                        step.classList.add('completed');
+                    } else if (stepIndex === index) {
+                        step.classList.add('active');
+                    }
+                });
+            });
+        });
+
+        // Adicionar manipulador de submissão do formulário
+        const form = document.getElementById('produtoForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(form);
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                
+                // Desabilitar botão e mostrar loading
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Salvando...';
+                
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToastFromResponse(data);
+                        // Redirecionar para a lista de produtos após 1 segundo
+                        setTimeout(() => {
+                            window.location.href = '/produtos';
+                        }, 1000);
+                    } else {
+                        showToastFromResponse(data);
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    showToast('Erro ao salvar produto.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

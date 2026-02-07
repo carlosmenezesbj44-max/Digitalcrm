@@ -1,0 +1,105 @@
+"""Add dashboard tables
+
+Revision ID: 001_add_dashboard
+Revises: d05b609a8955
+Create Date: 2024-01-18 00:00:00.000000
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+
+# revision identifiers, used by Alembic.
+revision = '001_add_dashboard'
+down_revision = 'd05b609a8955'
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    # Create dashboard table
+    op.create_table(
+        'dashboard',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('name', sa.String(length=255), nullable=False),
+        sa.Column('description', sa.Text(), nullable=True),
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.Column('is_active', sa.Boolean(), nullable=True),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_dashboard_name'), 'dashboard', ['name'], unique=True)
+
+    # Create dashboard_kpi table
+    op.create_table(
+        'dashboard_kpi',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('dashboard_id', sa.Integer(), nullable=True),
+        sa.Column('name', sa.String(length=255), nullable=True),
+        sa.Column('metric_type', sa.String(length=50), nullable=True),
+        sa.Column('current_value', sa.Float(), nullable=True),
+        sa.Column('previous_value', sa.Float(), nullable=True),
+        sa.Column('target_value', sa.Float(), nullable=True),
+        sa.Column('unit', sa.String(length=50), nullable=True),
+        sa.Column('trend', sa.String(length=20), nullable=True),
+        sa.Column('percentage_change', sa.Float(), nullable=True),
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.ForeignKeyConstraint(['dashboard_id'], ['dashboard.id'], ),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_dashboard_kpi_dashboard_id'), 'dashboard_kpi', ['dashboard_id'])
+    op.create_index(op.f('ix_dashboard_kpi_name'), 'dashboard_kpi', ['name'])
+
+    # Create dashboard_widget table
+    op.create_table(
+        'dashboard_widget',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('dashboard_id', sa.Integer(), nullable=True),
+        sa.Column('widget_type', sa.String(length=50), nullable=True),
+        sa.Column('title', sa.String(length=255), nullable=True),
+        sa.Column('description', sa.Text(), nullable=True),
+        sa.Column('position', sa.Integer(), nullable=True),
+        sa.Column('data_source', sa.String(length=255), nullable=True),
+        sa.Column('config', sa.Text(), nullable=True),
+        sa.Column('is_visible', sa.Boolean(), nullable=True),
+        sa.Column('created_at', sa.DateTime(), nullable=True),
+        sa.Column('updated_at', sa.DateTime(), nullable=True),
+        sa.ForeignKeyConstraint(['dashboard_id'], ['dashboard.id'], ),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_dashboard_widget_dashboard_id'), 'dashboard_widget', ['dashboard_id'])
+
+    # Create metric_history table
+    op.create_table(
+        'metric_history',
+        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('metric_type', sa.String(length=255), nullable=True),
+        sa.Column('value', sa.Float(), nullable=True),
+        sa.Column('timestamp', sa.DateTime(), nullable=True),
+        sa.Column('period', sa.String(length=50), nullable=True),
+        sa.Column('metadata', sa.Text(), nullable=True),
+        sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_metric_history_metric_type'), 'metric_history', ['metric_type'])
+    op.create_index(op.f('ix_metric_history_timestamp'), 'metric_history', ['timestamp'])
+
+
+def downgrade() -> None:
+    # Drop metric_history table
+    op.drop_index(op.f('ix_metric_history_timestamp'), table_name='metric_history')
+    op.drop_index(op.f('ix_metric_history_metric_type'), table_name='metric_history')
+    op.drop_table('metric_history')
+
+    # Drop dashboard_widget table
+    op.drop_index(op.f('ix_dashboard_widget_dashboard_id'), table_name='dashboard_widget')
+    op.drop_table('dashboard_widget')
+
+    # Drop dashboard_kpi table
+    op.drop_index(op.f('ix_dashboard_kpi_name'), table_name='dashboard_kpi')
+    op.drop_index(op.f('ix_dashboard_kpi_dashboard_id'), table_name='dashboard_kpi')
+    op.drop_table('dashboard_kpi')
+
+    # Drop dashboard table
+    op.drop_index(op.f('ix_dashboard_name'), table_name='dashboard')
+    op.drop_table('dashboard')

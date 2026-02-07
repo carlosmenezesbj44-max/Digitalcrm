@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTRATO PROFISSIONAL - {{ contrato_titulo }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Calibri', 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #000;
+            background: white;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        /* CABEÇALHO */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #003366;
+            padding-bottom: 20px;
+        }
+        
+        .header-logo {
+            font-weight: bold;
+            font-size: 12pt;
+            color: #003366;
+            margin-bottom: 5px;
+        }
+        
+        .header h1 {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #003366;
+            text-transform: uppercase;
+        }
+        
+        .header p {
+            font-size: 10pt;
+            margin: 2px 0;
+            color: #666;
+        }
+        
+        .reference {
+            text-align: right;
+            margin-bottom: 20px;
+            font-size: 10pt;
+            color: #666;
+        }
+        
+        .reference strong {
+            color: #003366;
+        }
+        
+        /* SEÇÕES */
+        .section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        
+        .section h2 {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: white;
+            background-color: #003366;
+            padding: 8px 12px;
+            border-radius: 3px;
+        }
+        
+        .section h3 {
+            font-size: 11pt;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+            color: #003366;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 3px;
+        }
+        
+        .section p {
+            margin-bottom: 8px;
+            text-align: justify;
+            line-height: 1.7;
+        }
+        
+        .section ul {
+            margin-left: 25px;
+            margin-bottom: 10px;
+        }
+        
+        .section ul li {
+            margin-bottom: 6px;
+            text-align: justify;
+        }
+        
+        /* PARTES */
+        .parties {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .party {
+            flex: 1;
+            padding: 12px;
+            background-color: #f5f5f5;
+            border-left: 3px solid #003366;
+            border-radius: 3px;
+        }
+        
+        .party-title {
+            font-weight: bold;
+            color: #003366;
+            margin-bottom: 8px;
+            font-size: 10pt;
+        }
+        
+        .party-content {
+            font-size: 10pt;
+            line-height: 1.5;
+        }
+        
+        .party-content p {
+            margin-bottom: 3px;
+        }
+        
+        /* TABELAS */
+        .payment-schedule {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 10pt;
+        }
+        
+        .payment-schedule th {
+            background-color: #003366;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ccc;
+            font-weight: bold;
+        }
+        
+        .payment-schedule td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        
+        .payment-schedule tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .payment-schedule tr:hover {
+            background-color: #f0f8ff;
+        }
+        
+        /* VALORES */
+        .values-section {
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-left: 3px solid #003366;
+            border-radius: 3px;
+            margin-bottom: 20px;
+        }
+        
+        .value-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 10pt;
+        }
+        
+        .value-item strong {
+            color: #003366;
+        }
+        
+        .value-total {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 8px;
+            border-top: 2px solid #003366;
+            font-weight: bold;
+            color: #003366;
+            font-size: 11pt;
+        }
+        
+        /* ASSINATURAS */
+        .signature-block {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            gap: 30px;
+        }
+        
+        .signature {
+            width: 48%;
+            text-align: center;
+        }
+        
+        .signature-line {
+            border-top: 2px solid #000;
+            padding-top: 8px;
+            margin-bottom: 2px;
+        }
+        
+        .signature p {
+            margin: 3px 0;
+            font-size: 9pt;
+            line-height: 1.3;
+        }
+        
+        .signature .name {
+            font-weight: bold;
+            margin-top: 5px;
+            color: #003366;
+        }
+        
+        .signature .title {
+            font-size: 9pt;
+            color: #666;
+        }
+        
+        .signature .date {
+            font-size: 9pt;
+            color: #666;
+            margin-top: 15px;
+        }
+        
+        /* DATA */
+        .date-info {
+            text-align: right;
+            margin-bottom: 25px;
+            font-size: 11pt;
+            color: #666;
+        }
+        
+        /* OBSERVAÇÕES */
+        .observations {
+            padding: 12px;
+            background-color: #fff3cd;
+            border-left: 3px solid #ffc107;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            font-size: 10pt;
+        }
+        
+        .observations strong {
+            color: #856404;
+        }
+        
+        /* FOOTER */
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
+            text-align: center;
+            font-size: 9pt;
+            color: #999;
+        }
+        
+        /* MEDIA */
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+        
+        strong {
+            font-weight: bold;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- CABEÇALHO -->
+        <div class="header">
+            <div class="header-logo">{{ empresa_nome }}</div>
+            <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>
+            <p>Documento Profissional e Vinculante</p>
+        </div>
+        
+        <div class="reference">
+            <p><strong>Contrato nº:</strong> {{ contrato_id }}</p>
+            <p><strong>Data:</strong> {{ data_atual }}</p>
+        </div>
+
+        <!-- SEÇÃO 1: PARTES ENVOLVIDAS -->
+        <div class="section">
+            <h2>1. DAS PARTES</h2>
+            <div class="parties">
+                <div class="party">
+                    <div class="party-title">CONTRATADA (Prestadora de Serviços)</div>
+                    <div class="party-content">
+                        <p><strong>Empresa:</strong> {{ empresa_nome }}</p>
+                        <p><strong>CNPJ:</strong> {{ empresa_cnpj }}</p>
+                        <p><strong>Inscrição Estadual:</strong> {{ empresa_ie }}</p>
+                        <p><strong>Endereço:</strong> {{ empresa_endereco }}</p>
+                        <p><strong>Telefone:</strong> {{ empresa_telefone }}</p>
+                        <p><strong>E-mail:</strong> {{ empresa_email }}</p>
+                    </div>
+                </div>
+                
+                <div class="party">
+                    <div class="party-title">CONTRATANTE (Beneficiário)</div>
+                    <div class="party-content">
+                        <p><strong>Nome:</strong> {{ cliente_nome }}</p>
+                        <p><strong>CPF/CNPJ:</strong> {{ cliente_cpf }}</p>
+                        <p><strong>Endereço:</strong> {{ cliente_endereco }}</p>
+                        <p><strong>Telefone:</strong> {{ cliente_telefone }}</p>
+                        <p><strong>E-mail:</strong> {{ cliente_email }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <p>As partes acima identificadas acordam em celebrar este contrato conforme as cláusulas que se seguem.</p>
+        </div>
+
+        <!-- SEÇÃO 2: OBJETO -->
+        <div class="section">
+            <h2>2. OBJETO DO CONTRATO</h2>
+            <h3>2.1 Descrição dos Serviços</h3>
+            <p>
+                O presente contrato tem por objeto a prestação de <strong>serviços de {{ contrato_tipo }}</strong>,
+                conforme identificado no plano <strong>"{{ contrato_titulo }}"</strong>, com as características e
+                especificações técnicas detalhadas abaixo:
+            </p>
+            <div class="values-section">
+                <p><strong>Descrição:</strong></p>
+                <p>{{ contrato_descricao }}</p>
+            </div>
+            
+            <h3>2.2 Período de Execução</h3>
+            <p>
+                <strong>Data de Início:</strong> {{ data_vigencia_inicio }}<br>
+                <strong>Data de Término:</strong> {{ data_vigencia_fim }}<br>
+                <strong>Duração Total:</strong> 12 (doze) meses
+            </p>
+        </div>
+
+        <!-- SEÇÃO 3: VALORES E CONDIÇÕES DE PAGAMENTO -->
+        <div class="section">
+            <h2>3. VALORES E CONDIÇÕES DE PAGAMENTO</h2>
+            
+            <h3>3.1 Tabela de Valores</h3>
+            <div class="values-section">
+                <div class="value-item">
+                    <span><strong>Valor {{ frequencia_pagamento }}:</strong></span>
+                    <span>R$ {{ contrato_valor_formatado }}</span>
+                </div>
+                <div class="value-item">
+                    <span><strong>Desconto Aplicado:</strong></span>
+                    <span>- R$ {{ desconto_formatado }}</span>
+                </div>
+                <div class="value-total">
+                    <span>VALOR LÍQUIDO A PAGAR:</span>
+                    <span>R$ {{ valor_liquido_formatado }}</span>
+                </div>
+            </div>
+            
+            <h3>3.2 Cronograma de Pagamento</h3>
+            <p>Os pagamentos seguirão o seguinte cronograma conforme frequência <strong>{{ frequencia_pagamento }}</strong>:</p>
+            <table class="payment-schedule">
+                <thead>
+                    <tr>
+                        <th>Nº</th>
+                        <th>Data de Vencimento</th>
+                        <th>Valor (R$)</th>
+                        <th>Descrição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ cronograma_pagamentos }}
+                </tbody>
+            </table>
+            
+            <h3>3.3 Condições de Pagamento</h3>
+            <ul>
+                <li>O pagamento deverá ser realizado até o <strong>{{ dia_pagamento }}º (décimo) dia</strong> de cada período;</li>
+                <li>Os valores serão expressos em <strong>Reais (R$)</strong> e deverão ser pagos via transferência bancária;</li>
+                <li>Após o vencimento, incidirá juros de <strong>{{ juros_atraso_percentual }}% ao mês</strong> sobre o saldo devedor;</li>
+                <li>Atrasos superiores a 15 (quinze) dias poderão resultar na suspensão dos serviços sem aviso prévio.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 4: OBRIGAÇÕES DA CONTRATADA -->
+        <div class="section">
+            <h2>4. OBRIGAÇÕES DA CONTRATADA</h2>
+            <p>A CONTRATADA obriga-se a:</p>
+            <ul>
+                <li>Prestar os serviços com qualidade, eficiência e conforme as normas técnicas aplicáveis;</li>
+                <li>Manter disponibilidade mínima de <strong>99% (noventa e nove por cento)</strong> do tempo mensal;</li>
+                <li>Fornecer suporte técnico conforme horário comercial (segunda a sexta, 09h às 18h);</li>
+                <li>Emitir faturas e recibos de pagamento dentro do prazo estabelecido;</li>
+                <li>Cumprir integralmente a Lei Geral de Proteção de Dados (LGPD) e legislação pertinente;</li>
+                <li>Comunicar previamente qualquer alteração que venha a afetar a execução dos serviços;</li>
+                <li>Manter sigilo sobre informações confidenciais do CONTRATANTE;</li>
+                <li>Responsabilizar-se por danos causados por negligência, imprudência ou imperícia no cumprimento deste contrato.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 5: OBRIGAÇÕES DO CONTRATANTE -->
+        <div class="section">
+            <h2>5. OBRIGAÇÕES DO CONTRATANTE</h2>
+            <p>O CONTRATANTE obriga-se a:</p>
+            <ul>
+                <li>Utilizar os serviços de forma lícita e ética, em conformidade com a legislação vigente;</li>
+                <li>Efetuar os pagamentos nos prazos e valores estabelecidos neste contrato;</li>
+                <li>Comunicar imediatamente qualquer problema ou irregularidade na prestação dos serviços;</li>
+                <li>Não compartilhar credenciais de acesso com terceiros sem autorização escrita;</li>
+                <li>Permitir acesso técnico para manutenções preventivas e corretivas;</li>
+                <li>Responsabilizar-se pelo uso indevido dos serviços contratados.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 6: MULTAS E PENALIDADES -->
+        <div class="section">
+            <h2>6. MULTAS, JUROS E PENALIDADES</h2>
+            <p>Em caso de inadimplemento dos pagamentos, serão aplicadas as seguintes sanções:</p>
+            <table class="payment-schedule">
+                <thead>
+                    <tr>
+                        <th>Período de Atraso</th>
+                        <th>Multa</th>
+                        <th>Observações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Até 5 dias</td>
+                        <td>2% sobre o valor devido</td>
+                        <td>Multa moratória</td>
+                    </tr>
+                    <tr>
+                        <td>6 a 15 dias</td>
+                        <td>5% + 1% de juros ao mês</td>
+                        <td>Juros sobre a dívida</td>
+                    </tr>
+                    <tr>
+                        <td>Acima de 15 dias</td>
+                        <td>Suspensão automática do serviço</td>
+                        <td>Sem aviso prévio</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SEÇÃO 7: VIGÊNCIA E RENOVAÇÃO -->
+        <div class="section">
+            <h2>7. VIGÊNCIA, RENOVAÇÃO E RESCISÃO</h2>
+            
+            <h3>7.1 Vigência</h3>
+            <p>
+                Este contrato vigerá pelo período especificado na Seção 2.2, com renovação automática por períodos
+                iguais, conforme política de renovação selecionada: <strong>{{ status_renovacao }}</strong>.
+            </p>
+            
+            <h3>7.2 Renovação</h3>
+            <ul>
+                <li>A renovação ocorrerá automaticamente se nenhuma das partes comunicar o cancelamento com <strong>30 (trinta) dias de antecedência</strong>;</li>
+                <li>Os valores poderão ser reajustados conforme índices vigentes (IGPM ou INPC).</li>
+            </ul>
+            
+            <h3>7.3 Rescisão</h3>
+            <p>
+                Este contrato poderá ser rescindido:
+            </p>
+            <ul>
+                <li><strong>Por conveniência do CONTRATANTE:</strong> Com 30 dias de antecedência, acarretando multa de 30% sobre o saldo remanescente;</li>
+                <li><strong>Por inadimplemento:</strong> Pela CONTRATADA, sem aviso prévio, se houver atraso superior a 15 dias;</li>
+                <li><strong>Por causa justa:</strong> Qualquer uma das partes, mediante justificativa comprovada.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 8: SIGILO E SEGURANÇA -->
+        <div class="section">
+            <h2>8. CONFIDENCIALIDADE E PROTEÇÃO DE DADOS</h2>
+            <ul>
+                <li>Ambas as partes comprometem-se a manter sigilo sobre informações confidenciais compartilhadas;</li>
+                <li>A CONTRATADA é responsável pela segurança dos dados do CONTRATANTE conforme LGPD;</li>
+                <li>A CONTRATADA não poderá compartilhar dados pessoais sem consentimento expresso;</li>
+                <li>Informações técnicas e comerciais são consideradas confidenciais durante e após o término do contrato.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 9: FORO E LEGISLAÇÃO -->
+        <div class="section">
+            <h2>9. DISPOSIÇÕES GERAIS E FORO</h2>
+            <h3>9.1 Lei Aplicável</h3>
+            <p>Este contrato é regido pelas leis da República Federativa do Brasil.</p>
+            
+            <h3>9.2 Foro Competente</h3>
+            <p>
+                Fica eleito o foro da comarca de <strong>{{ empresa_cidade }}</strong> para dirimir qualquer dúvida
+                ou controvérsia decorrente deste instrumento, com renúncia de qualquer outro, por mais privilegiado que seja.
+            </p>
+            
+            <h3>9.3 Integralidade</h3>
+            <p>
+                Este contrato representa a integralidade do acordo entre as partes e substitui todos os anteriores.
+                Qualquer alteração deverá ser formalizada por escrito e assinada por ambas as partes.
+            </p>
+        </div>
+
+        {% if observacoes %}
+        <div class="observations">
+            <strong>Observações Especiais:</strong><br>
+            {{ observacoes }}
+        </div>
+        {% endif %}
+
+        <!-- ASSINATURAS -->
+        <div class="signature-block">
+            <div class="signature">
+                <div class="signature-line">&nbsp;</div>
+                <p class="name">{{ empresa_nome }}</p>
+                <p class="title">CONTRATADA</p>
+                <p class="date">_________________________<br>Assinatura e Data</p>
+            </div>
+            <div class="signature">
+                <div class="signature-line">&nbsp;</div>
+                <p class="name">{{ cliente_nome }}</p>
+                <p class="title">CONTRATANTE</p>
+                <p class="date">_________________________<br>Assinatura e Data</p>
+            </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="footer">
+            <p>Documento gerado automaticamente pelo sistema de gerenciamento de contratos.</p>
+            <p>Este é um documento profissional e vinculante. As partes declaram ter lido, entendido e concordado com todos os termos aqui estabelecidos.</p>
+        </div>
+    </div>
+</body>
+</html>

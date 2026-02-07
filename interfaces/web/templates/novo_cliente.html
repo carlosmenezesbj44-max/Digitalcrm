@@ -1,0 +1,852 @@
+{% extends "layout.html" %}
+
+{% block title %}{% if cliente %}Editar Cliente{% else %}Cadastrar Novo Cliente{% endif %} - CRM Provedor{% endblock %}
+
+    {% block extra_css %}
+<style>
+    /* CSS específico para formulário de cliente */
+    .floating-tabs {
+        position: sticky;
+        top: 20px;
+        z-index: 1000;
+        background: var(--card-bg);
+        border-radius: 8px;
+        box-shadow: var(--box-shadow);
+        padding: 15px;
+        margin-bottom: 30px;
+        border: 1px solid var(--border-color);
+    }
+
+    /* Corrigir overflow na página de edição */
+    .app-container {
+        overflow-x: hidden;
+    }
+    
+    .main-content {
+        overflow-x: hidden;
+        width: 100%;
+    }
+    
+    /* Evitar barras de rolagem extras */
+    html, body {
+        overflow-x: hidden !important;
+        max-width: 100vw;
+    }
+
+
+    .floating-tabs .nav-tabs {
+        border-bottom: none;
+        margin-bottom: 0;
+        gap: 8px;
+    }
+
+    .floating-tabs .nav-link {
+        border: none;
+        border-radius: 6px;
+        margin-right: 0;
+        padding: 12px 20px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        background: rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .floating-tabs .nav-link:hover {
+        background: var(--sidebar-hover);
+        color: var(--white);
+    }
+
+    .floating-tabs .nav-link.active {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: 0 2px 8px rgba(0, 163, 255, 0.3);
+    }
+
+    .floating-tabs .nav-link.active i {
+        color: white;
+    }
+
+    .tab-content {
+        padding: 20px 0;
+    }
+
+    .tab-pane {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Progress indicator */
+    .form-progress {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding: 0 10px;
+    }
+
+    .progress-step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+
+    .progress-step::before {
+        content: '';
+        position: absolute;
+        top: 12px;
+        left: 50%;
+        right: -50%;
+        height: 2px;
+        background: var(--border-color);
+        z-index: 1;
+    }
+
+    .progress-step:last-child::before {
+        display: none;
+    }
+
+    .progress-step.completed::before {
+        background: var(--success-color);
+    }
+
+    .progress-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--border-color);
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        position: relative;
+        z-index: 2;
+        margin: 0 auto 8px;
+    }
+
+    .progress-step.completed .progress-dot {
+        background: var(--success-color);
+    }
+
+    .progress-step.active .progress-dot {
+        background: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
+    }
+
+    .progress-label {
+        font-size: 11px;
+        color: var(--text-light);
+        opacity: 0.7;
+        margin-top: 4px;
+    }
+
+    .progress-step.active .progress-label {
+        color: var(--primary-color);
+        font-weight: 500;
+    }
+
+    .progress-step.completed .progress-label {
+        color: var(--success-color);
+    }
+
+    #product-dropdown option {
+        color: black !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="h3 mb-4">{% if cliente %}Editar Cliente{% else %}Cadastrar Novo Cliente{% endif %}</h1>
+
+            {% if error %}
+            <div class="alert alert-danger" role="alert">
+                <i class="bi bi-exclamation-triangle"></i> {{ error }}
+            </div>
+            {% endif %}
+
+            <!-- Progress Indicator -->
+            <div class="form-progress">
+                <div class="progress-step completed" data-step="1">
+                    <div class="progress-dot">1</div>
+                    <div class="progress-label">Dados Pessoais</div>
+                </div>
+                <div class="progress-step" data-step="2">
+                    <div class="progress-dot">2</div>
+                    <div class="progress-label">Endereço</div>
+                </div>
+                <div class="progress-step" data-step="3">
+                    <div class="progress-dot">3</div>
+                    <div class="progress-label">Contatos</div>
+                </div>
+                <div class="progress-step" data-step="4">
+                    <div class="progress-dot">4</div>
+                    <div class="progress-label">Serviços</div>
+                </div>
+                <div class="progress-step" data-step="5">
+                    <div class="progress-dot">5</div>
+                    <div class="progress-label">Arquivos</div>
+                </div>
+                <div class="progress-step" data-step="6">
+                    <div class="progress-dot">6</div>
+                    <div class="progress-label">Finalizar</div>
+                </div>
+            </div>
+
+            <!-- Floating Tabs Navigation -->
+            <div class="floating-tabs">
+                <ul class="nav nav-tabs" id="clienteTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="pessoal-tab" data-bs-toggle="tab" data-bs-target="#pessoal" type="button" role="tab">
+                            <i class="bi bi-person"></i> Dados Pessoais
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="endereco-tab" data-bs-toggle="tab" data-bs-target="#endereco" type="button" role="tab">
+                            <i class="bi bi-geo-alt"></i> Endereço
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="contatos-tab" data-bs-toggle="tab" data-bs-target="#contatos" type="button" role="tab">
+                            <i class="bi bi-telephone"></i> Contatos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="servicos-tab" data-bs-toggle="tab" data-bs-target="#servicos" type="button" role="tab">
+                            <i class="bi bi-shield-lock"></i> Serviços
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="arquivos-tab" data-bs-toggle="tab" data-bs-target="#arquivos" type="button" role="tab">
+                            <i class="bi bi-file-earmark-arrow-up"></i> Arquivos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="finalizar-tab" data-bs-toggle="tab" data-bs-target="#finalizar" type="button" role="tab">
+                            <i class="bi bi-check-circle"></i> Finalizar
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <form method="post" action="{% if cliente %}/clientes/{{ cliente.id }}/editar{% else %}/clientes/novo{% endif %}" enctype="multipart/form-data">
+                <!-- Tab Content -->
+                <div class="tab-content" id="clienteTabContent">
+
+                    <!-- Aba Dados Pessoais -->
+                    <div class="tab-pane fade show active" id="pessoal" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h6 class="mb-0 fw-bold" style="color: var(--text-main);"><i class="bi bi-person"></i> Informações Principais</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info border-0 shadow-sm" style="background: rgba(0, 163, 255, 0.1); color: var(--text-main);">
+                                    <i class="bi bi-info-circle"></i> Informações básicas do cliente. Campos marcados com <span class="text-danger">*</span> são obrigatórios.
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="nome" class="form-label text-light">Nome <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="nome" name="nome" value="{% if cliente %}{{ cliente.nome }}{% endif %}" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="cpf" class="form-label text-light">CPF <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="cpf" name="cpf" value="{% if cliente %}{{ cliente.cpf }}{% endif %}" required maxlength="14">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="rg" class="form-label text-light">RG</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="rg" name="rg" value="{% if cliente %}{{ cliente.rg }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="data_nascimento" class="form-label text-light">Data de Nascimento</label>
+                                        <input type="date" class="form-control bg-transparent border-secondary text-white" id="data_nascimento" name="data_nascimento" value="{% if cliente and cliente.data_nascimento %}{{ cliente.data_nascimento.strftime('%Y-%m-%d') }}{% endif %}">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tipo_cliente" class="form-label text-light">Tipo de Cliente</label>
+                                    <select class="form-select bg-transparent border-secondary text-white" id="tipo_cliente" name="tipo_cliente">
+                                        <option value="fisico" {% if not cliente or cliente.tipo_cliente == 'fisico' %}selected{% endif %}>Físico (CPF)</option>
+                                        <option value="juridico" {% if cliente and cliente.tipo_cliente == 'juridico' %}selected{% endif %}>Jurídico (CNPJ)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-primary btn-lg border-0 shadow-sm" onclick="switchTab('endereco')">
+                                <i class="bi bi-arrow-right"></i> Avançar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Endereço -->
+                    <div class="tab-pane fade" id="endereco" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h6 class="mb-0 fw-bold" style="color: var(--text-main);"><i class="bi bi-geo-alt"></i> Endereço</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-success border-0 shadow-sm" style="background: rgba(46, 204, 113, 0.1); color: var(--text-main);">
+                                    <i class="bi bi-geo-alt"></i> Informações de localização do cliente.
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-8 mb-3">
+                                        <label for="rua" class="form-label text-light">Endereço / Rua</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="rua" name="rua" value="{% if cliente %}{{ cliente.rua }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="numero" class="form-label text-light">Número</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="numero" name="numero" value="{% if cliente %}{{ cliente.numero }}{% endif %}">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="bairro" class="form-label text-light">Bairro</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="bairro" name="bairro" value="{% if cliente %}{{ cliente.bairro }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="cidade" class="form-label text-light">Cidade</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="cidade" name="cidade" value="{% if cliente %}{{ cliente.cidade }}{% endif %}">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="cep" class="form-label text-light">CEP</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="cep" name="cep" value="{% if cliente %}{{ cliente.cep }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="complemento" class="form-label text-light">Complemento</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="complemento" name="complemento" value="{% if cliente %}{{ cliente.complemento }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="tipo_localidade" class="form-label text-light">Localidade</label>
+                                        <select class="form-select bg-transparent border-secondary text-white" id="tipo_localidade" name="tipo_localidade">
+                                            <option value="urbana" {% if not cliente or cliente.tipo_localidade == 'urbana' %}selected{% endif %}>Zona Urbana</option>
+                                            <option value="rural" {% if cliente and cliente.tipo_localidade == 'rural' %}selected{% endif %}>Zona Rural</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <label for="foto_casa_input" class="form-label text-light">Foto da Casa</label>
+                                        <div class="input-group">
+                                            <input type="file" class="form-control bg-transparent border-secondary text-white" id="foto_casa_input" name="foto_casa_file" accept="image/*">
+                                            {% if cliente and cliente.foto_casa %}
+                                            <a href="{{ cliente.foto_casa }}" target="_blank" class="btn btn-outline-info">
+                                                <i class="bi bi-eye"></i> Ver Atual
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">Anexe uma foto da fachada da residência para facilitar a localização pelos técnicos.</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary btn-lg border-0 shadow-sm" onclick="switchTab('pessoal')">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary btn-lg border-0 shadow-sm" onclick="switchTab('contatos')">
+                                <i class="bi bi-arrow-right"></i> Avançar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Contatos -->
+                    <div class="tab-pane fade" id="contatos" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h6 class="mb-0 fw-bold" style="color: var(--text-main);"><i class="bi bi-telephone"></i> Contatos</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="email" class="form-label text-light">Email</label>
+                                        <input type="email" class="form-control bg-transparent border-secondary text-white" id="email" name="email" value="{% if cliente %}{{ cliente.email }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="telefone" class="form-label text-light">Telefone</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="telefone" name="telefone" value="{% if cliente %}{{ cliente.telefone }}{% endif %}">
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="telefone2" class="form-label text-light">Telefone 2</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="telefone2" name="telefone2" value="{% if cliente %}{{ cliente.telefone2 }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="whatsapp" class="form-label text-light">WhatsApp</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="whatsapp" name="whatsapp" value="{% if cliente %}{{ cliente.whatsapp }}{% endif %}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary btn-lg border-0 shadow-sm" onclick="switchTab('endereco')">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary btn-lg border-0 shadow-sm" onclick="switchTab('servicos')">
+                                <i class="bi bi-arrow-right"></i> Avançar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Serviços -->
+                    <div class="tab-pane fade" id="servicos" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h6 class="mb-0 fw-bold" style="color: var(--text-main);"><i class="bi bi-shield-lock"></i> Serviços</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="plano_id" class="form-label text-light">Plano</label>
+                                        <select class="form-select bg-transparent border-secondary text-white" id="plano_id" name="plano_id">
+                                            <option value="">Selecione um plano...</option>
+                                            {% for plano in planos %}
+                                            <option value="{{ plano.id }}" data-price="{{ plano.valor_mensal }}" {% if cliente and cliente.plano_id == plano.id %}selected{% endif %}>
+                                                {{ plano.nome }} - R$ {{ "%.2f"|format(plano.valor_mensal) }} ({{ plano.velocidade_download }}M/{{ plano.velocidade_upload }}M)
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="servidor_id" class="form-label text-light">Servidor/Concentrador</label>
+                                        <select class="form-select bg-transparent border-secondary text-white" id="servidor_id" name="servidor_id">
+                                            <option value="">Selecione um servidor...</option>
+                                            {% for servidor in servidores %}
+                                            <option value="{{ servidor.id }}" {% if cliente and cliente.servidor_id == servidor.id %}selected{% endif %}>
+                                                {{ servidor.nome }} ({{ servidor.ip }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="username" class="form-label text-light">Login (PPPoE/Acesso)</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="username" name="username" value="{% if cliente %}{{ cliente.username or '' }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="password" class="form-label text-light">Senha</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="password" name="password" value="{% if cliente %}{{ cliente.password or '' }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label for="tipo_servico" class="form-label text-light">Tipo de Conexão</label>
+                                        <select class="form-select bg-transparent border-secondary text-white" id="tipo_servico" name="tipo_servico">
+                                            <option value="pppoe" {% if not cliente or cliente.tipo_servico == 'pppoe' %}selected{% endif %}>PPPoE</option>
+                                            <option value="ipoe" {% if cliente and cliente.tipo_servico == 'ipoe' %}selected{% endif %}>IPoE / DHCP</option>
+                                            <option value="estatico" {% if cliente and cliente.tipo_servico == 'estatico' %}selected{% endif %}>IP Estático</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label for="dia_vencimento" class="form-label text-light">Dia de Vencimento</label>
+                                        <select class="form-select bg-transparent border-secondary text-white" id="dia_vencimento" name="dia_vencimento">
+                                            {% for dia in [5, 10, 15, 20, 25] %}
+                                            <option value="{{ dia }}" {% if cliente and cliente.dia_vencimento == dia %}selected{% endif %}>Dia {{ dia }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="data_instalacao" class="form-label text-light">Data de Instalação</label>
+                                        <input type="date" class="form-control bg-transparent border-secondary text-white" id="data_instalacao" name="data_instalacao" value="{% if cliente and cliente.data_instalacao %}{{ cliente.data_instalacao.strftime('%Y-%m-%d') }}{% endif %}">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="status_servico" class="form-label text-light">Status do Serviço</label>
+                                        <select class="form-select bg-transparent border-secondary text-white" id="status_servico" name="status_servico">
+                                            <option value="ativo" {% if not cliente or cliente.status_servico == 'ativo' %}selected{% endif %}>Ativo</option>
+                                            <option value="inativo" {% if cliente and cliente.status_servico == 'inativo' %}selected{% endif %}>Inativo</option>
+                                            <option value="pendente" {% if cliente and cliente.status_servico == 'pendente' %}selected{% endif %}>Pendente</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="profile" class="form-label text-light">Profile/Plano Concentrador</label>
+                                        <input type="text" class="form-control bg-transparent border-secondary text-white" id="profile" name="profile" value="{% if cliente %}{{ cliente.profile or '' }}{% endif %}" placeholder="Ex: plano_100mb">
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="comentario_login" class="form-label text-light">Comentário/Observações do Acesso</label>
+                                    <textarea class="form-control bg-transparent border-secondary text-white" id="comentario_login" name="comentario_login" rows="2">{% if cliente %}{{ cliente.comentario_login or '' }}{% endif %}</textarea>
+                                </div>
+
+                                <!-- Nova Seção de Produtos -->
+                                <div class="row mt-4">
+                                    <div class="col-md-12">
+                                        <h5 class="text-light mb-3">Produtos Adicionais</h5>
+                                        <input type="hidden" name="produtos_adicionais" id="produtos-adicionais-input" value="[]">
+                                        <div id="product-selection-area">
+                                              <div class="input-group mb-3">
+                                                  <select class="form-select bg-transparent border-secondary" id="product-dropdown">
+                                                      <option value="">Selecione um produto...</option>
+                                                      {% for produto in produtos %}
+                                                      <option value="{{ produto.id }}" data-price="{{ produto.preco }}">{{ produto.nome }} - R$ {{ "%.2f"|format(produto.preco) }}</option>
+                                                      {% endfor %}
+                                                  </select>
+                                                  <button class="btn btn-outline-secondary" type="button" id="open-product-modal-btn" data-bs-toggle="modal" data-bs-target="#productSelectionModal">
+                                                      <i class="bi bi-search"></i>
+                                                  </button>
+                                              </div>
+                                              <div id="selected-products-display" class="mt-2">
+                        <!-- Produtos selecionados serão exibidos aqui -->
+                    </div>
+                    <div class="mt-3 p-3 bg-dark rounded text-white d-flex justify-content-between align-items-center">
+                        <strong>Valor Total (Plano + Produtos):</strong>
+                        <span id="total-value-display">R$ 0.00</span>
+                    </div>
+                                          </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary btn-lg border-0 shadow-sm" onclick="switchTab('contatos')">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary btn-lg border-0 shadow-sm" onclick="switchTab('arquivos')">
+                                <i class="bi bi-arrow-right"></i> Avançar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Arquivos -->
+                    <div class="tab-pane fade" id="arquivos" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h6 class="mb-0 fw-bold" style="color: var(--text-main);"><i class="bi bi-file-earmark-arrow-up"></i> Documentos do Cliente</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-warning border-0 shadow-sm" style="background: rgba(241, 196, 15, 0.1); color: var(--text-main);">
+                                    <i class="bi bi-info-circle"></i> Você pode anexar documentos como cópia do CPF, RG, Comprovante de Residência, etc.
+                                </div>
+                                <div class="mb-3">
+                                    <label for="arquivos_input" class="form-label text-light">Anexar Documentos</label>
+                                    <input type="file" class="form-control bg-transparent border-secondary text-white" id="arquivos_input" name="documentos" multiple>
+                                    <small class="text-muted">Selecione um ou mais arquivos para enviar.</small>
+                                </div>
+                                
+                                {% if cliente and cliente.arquivos %}
+                                <div class="mt-4">
+                                    <h6 class="text-light mb-3">Arquivos já enviados:</h6>
+                                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                                        {% for arquivo in cliente.arquivos %}
+                                        <div class="col" id="arquivo-{{ arquivo.id }}">
+                                            <div class="d-flex align-items-center p-3 border rounded shadow-sm hover-shadow transition" style="background: rgba(var(--primary-color-rgb), 0.02); border-color: rgba(255,255,255,0.1) !important;">
+                                                <div class="flex-shrink-0 me-3">
+                                                    {% set ext = arquivo.filename.split('.')[-1].lower() %}
+                                                    {% if ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                                        <i class="bi bi-file-earmark-image text-primary h4 mb-0"></i>
+                                                    {% elif ext == 'pdf' %}
+                                                        <i class="bi bi-file-earmark-pdf text-danger h4 mb-0"></i>
+                                                    {% elif ext in ['doc', 'docx'] %}
+                                                        <i class="bi bi-file-earmark-word text-primary h4 mb-0"></i>
+                                                    {% else %}
+                                                        <i class="bi bi-file-earmark-text text-secondary h4 mb-0"></i>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="flex-grow-1 overflow-hidden">
+                                                    <h6 class="mb-1 text-truncate text-white small" title="{{ arquivo.filename }}">{{ arquivo.filename }}</h6>
+                                                    <small class="text-muted" style="font-size: 0.7rem;">{{ arquivo.data_upload.strftime('%d/%m/%Y %H:%M') }}</small>
+                                                </div>
+                                                <div class="flex-shrink-0 ms-2">
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{{ arquivo.filepath }}" target="_blank" class="btn btn-outline-info" title="Ver Arquivo">
+                                                            <i class="bi bi-eye"></i>
+                                                        </a>
+                                                        <button type="button" onclick="excluirArquivo({{ arquivo.id }})" class="btn btn-outline-danger" title="Excluir">
+                                                            <i class="bi bi-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary btn-lg border-0 shadow-sm" onclick="switchTab('servicos')">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary btn-lg border-0 shadow-sm" onclick="switchTab('finalizar')">
+                                <i class="bi bi-arrow-right"></i> Avançar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Aba Finalizar -->
+                    <div class="tab-pane fade" id="finalizar" role="tabpanel">
+                        <div class="card mb-4 border-0 shadow-sm" style="background: var(--card-bg);">
+                            <div class="modal-header border-bottom-0 pt-4 px-4">
+                                <h6 class="mb-0 fw-bold" style="color: var(--text-main);"><i class="bi bi-check-circle"></i> Finalizar Cadastro</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-success border-0 shadow-sm" style="background: rgba(46, 204, 113, 0.1); color: var(--text-main);">
+                                    <i class="bi bi-check-circle"></i> Revise as informações antes de salvar.
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="termos" required>
+                                    <label class="form-check-label" for="termos" style="color: var(--text-secondary);">
+                                        Concordo com os termos de uso e política de privacidade
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary btn-lg border-0 shadow-sm" onclick="switchTab('arquivos')">
+                                <i class="bi bi-arrow-left"></i> Voltar
+                            </button>
+                            <button type="submit" class="btn btn-success btn-lg border-0 shadow-sm">
+                                <i class="bi bi-check-circle"></i> {% if cliente %}Atualizar{% else %}Cadastrar{% endif %}
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Seleção de Produtos -->
+<div class="modal fade" id="productSelectionModal" tabindex="-1" aria-labelledby="productSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-transparent border-secondary text-white">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title" id="productSelectionModalLabel">Selecionar Produtos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body bg-transparent">
+                <div id="modal-product-list" class="list-group">
+                    {% for produto in produtos %}
+                    <div class="list-group-item bg-transparent border-secondary text-white d-flex align-items-center justify-content-between p-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="{{ produto.id }}" id="product-{{ produto.id }}" data-price="{{ produto.preco }}" data-name="{{ produto.nome }}" data-type="{{ produto.tipo }}">
+                            <label class="form-check-label ms-2" for="product-{{ produto.id }}">
+                                {{ produto.nome }} - R$ {{ "%.2f"|format(produto.preco) }} ({{ produto.tipo }})
+                            </label>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary bg-transparent">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" id="confirm-selected-products-btn">Adicionar Selecionados</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Adicionar máscaras de input
+        addInputMask('cpf', 'cpf');
+        addInputMask('cep', 'cep');
+        addInputMask('telefone', 'telefone');
+        addInputMask('telefone2', 'telefone');
+        addInputMask('whatsapp', 'telefone');
+        
+        // Inicializar tabs do Bootstrap
+        initTabs('clienteTabs');
+
+        // Preview da Foto da Casa
+        const fotoInput = document.getElementById('foto_casa_input');
+        if (fotoInput) {
+            fotoInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        let preview = document.getElementById('foto_casa_preview');
+                        if (!preview) {
+                            const container = fotoInput.parentElement.parentElement;
+                            preview = document.createElement('div');
+                            preview.id = 'foto_casa_preview';
+                            preview.className = 'mt-3 text-center';
+                            container.appendChild(preview);
+                        }
+                        preview.innerHTML = `
+                            <p class="text-light small mb-2">Nova foto selecionada:</p>
+                            <img src="${e.target.result}" class="img-fluid rounded shadow-sm" style="max-height: 200px;">
+                        `;
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+    });
+
+    // Função para excluir arquivo
+    async function excluirArquivo(arquivoId) {
+        if (!confirm('Tem certeza que deseja excluir este arquivo permanentemente?')) return;
+
+        try {
+            const response = await fetch(`/api/v1/clientes/arquivos/${arquivoId}`, {
+                method: 'DELETE'
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                const element = document.getElementById(`arquivo-${arquivoId}`);
+                if (element) {
+                    element.classList.add('fade-out');
+                    setTimeout(() => {
+                        element.remove();
+                        showToast('Arquivo excluído com sucesso!', 'success');
+                        
+                        // Se não houver mais arquivos, recarregar para mostrar estado vazio ou ocultar seção
+                        const container = document.querySelector('#arquivos .row');
+                        if (container && container.children.length === 0) {
+                            location.reload();
+                        }
+                    }, 300);
+                } else {
+                    location.reload();
+                }
+            } else {
+                showToast('Erro ao excluir arquivo: ' + (data.detail || 'Erro desconhecido'), 'error');
+            }
+        } catch (error) {
+            showToast('Erro na requisição: ' + error.message, 'error');
+        }
+    }
+
+    // Gerenciamento de Produtos Adicionais
+    let selectedProducts = [];
+
+    // Inicializar produtos se estiver editando um cliente
+    {% if cliente and cliente.produto_ids %}
+        {% for prod_id in cliente.produto_ids %}
+            {% for produto in produtos %}
+                {% if produto.id == prod_id %}
+                    selectedProducts.push({
+                        id: {{ produto.id }},
+                        name: "{{ produto.nome }}",
+                        price: {{ produto.preco_venda or 0 }}
+                    });
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
+
+    const productDropdown = document.getElementById('product-dropdown');
+    const selectedProductsDisplay = document.getElementById('selected-products-display');
+    const productsInput = document.getElementById('produtos-adicionais-input');
+    const totalValueDisplay = document.getElementById('total-value-display');
+    const planoSelect = document.getElementById('plano_id');
+
+    function updateTotalValue() {
+        let total = 0;
+        
+        // Valor do plano
+        const selectedPlano = planoSelect.options[planoSelect.selectedIndex];
+        if (selectedPlano && selectedPlano.dataset.price) {
+            total += parseFloat(selectedPlano.dataset.price);
+        }
+
+        // Valor dos produtos
+        selectedProducts.forEach(product => {
+            total += product.price;
+        });
+
+        totalValueDisplay.innerText = `R$ ${total.toFixed(2)}`;
+    }
+
+    function renderSelectedProducts() {
+        selectedProductsDisplay.innerHTML = '';
+        selectedProducts.forEach((product, index) => {
+            const badge = document.createElement('div');
+            badge.className = 'd-flex align-items-center justify-content-between p-2 mb-2 bg-dark rounded border border-secondary';
+            badge.innerHTML = `
+                <span class="text-white small">${product.name} - R$ ${product.price.toFixed(2)}</span>
+                <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeProduct(${index})">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            `;
+            selectedProductsDisplay.appendChild(badge);
+        });
+
+        // Atualizar input oculto
+        productsInput.value = JSON.stringify(selectedProducts.map(p => p.id));
+        updateTotalValue();
+    }
+
+    window.removeProduct = function(index) {
+        selectedProducts.splice(index, 1);
+        renderSelectedProducts();
+    };
+
+    if (productDropdown) {
+        productDropdown.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                const productId = parseInt(selectedOption.value);
+                const productPrice = parseFloat(selectedOption.dataset.price);
+                const productName = selectedOption.text.split(' - ')[0];
+
+                if (!selectedProducts.find(p => p.id === productId)) {
+                    selectedProducts.push({
+                        id: productId,
+                        name: productName,
+                        price: productPrice
+                    });
+                    renderSelectedProducts();
+                }
+                this.selectedIndex = 0;
+            }
+        });
+    }
+
+    if (planoSelect) {
+        planoSelect.addEventListener('change', updateTotalValue);
+    }
+
+    // Lógica do Modal de Produtos
+    const confirmProductsBtn = document.getElementById('confirm-selected-products-btn');
+    if (confirmProductsBtn) {
+        confirmProductsBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('#modal-product-list .form-check-input:checked');
+            checkboxes.forEach(cb => {
+                const productId = parseInt(cb.value);
+                const productPrice = parseFloat(cb.dataset.price);
+                const productName = cb.dataset.name;
+
+                if (!selectedProducts.find(p => p.id === productId)) {
+                    selectedProducts.push({
+                        id: productId,
+                        name: productName,
+                        price: productPrice
+                    });
+                }
+            });
+            renderSelectedProducts();
+            
+            // Fechar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('productSelectionModal'));
+            if (modal) modal.hide();
+            
+            // Desmarcar checkboxes para a próxima vez
+            checkboxes.forEach(cb => cb.checked = false);
+        });
+    }
+
+    // Inicializar total e renderizar produtos se houver dados pre-carregados
+    renderSelectedProducts();
+    updateTotalValue();
+</script>
+{% endblock %}

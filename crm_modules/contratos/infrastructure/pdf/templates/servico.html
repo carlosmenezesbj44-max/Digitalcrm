@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #000;
+            background: white;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+        }
+        
+        .header h1 {
+            font-size: 13pt;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 10pt;
+            margin: 3px 0;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+        
+        .section h2 {
+            font-size: 11pt;
+            font-weight: bold;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 3px;
+        }
+        
+        .section p {
+            margin-bottom: 6px;
+            text-align: justify;
+        }
+        
+        .section ul {
+            margin-left: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .section ul li {
+            margin-bottom: 4px;
+            text-align: justify;
+        }
+        
+        .signature-block {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            gap: 30px;
+        }
+        
+        .signature {
+            width: 48%;
+            text-align: center;
+            border-top: 1px solid #000;
+            padding-top: 8px;
+        }
+        
+        .signature p {
+            margin: 4px 0;
+            font-size: 9pt;
+        }
+        
+        .signature .name {
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        
+        .signature .role {
+            font-size: 9pt;
+        }
+        
+        .date-info {
+            text-align: right;
+            margin-bottom: 20px;
+            font-size: 10pt;
+        }
+        
+        strong {
+            font-weight: bold;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- CABEÇALHO -->
+        <div class="header">
+            {% if empresa_logo %}
+            <img src="{{ empresa_logo }}" alt="Logo" style="max-height: 70px; margin-bottom: 10px;">
+            {% endif %}
+            <h1>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>
+            <p><strong>{{ empresa_nome }}</strong></p>
+            <p><strong>Contrato nº:</strong> {{ contrato_id }}</p>
+            <div class="date-info"><strong>Data:</strong> {{ data_atual }}</div>
+        </div>
+
+        <!-- SEÇÃO 1: PARTES -->
+        <div class="section">
+            <h2>1. DAS PARTES</h2>
+            <p>
+                <strong>CONTRATADA:</strong> {{ empresa_razao_social or empresa_nome }}, CNPJ {{ empresa_cnpj }},
+                {% if empresa_ie %}IE {{ empresa_ie }},{% endif %}
+                com sede na {{ empresa_endereco }}{% if empresa_telefone %}, fone {{ empresa_telefone }}{% endif %}.
+            </p>
+            <p>
+                <strong>CONTRATANTE:</strong> {{ cliente_nome }}, CPF {{ cliente_cpf }},
+                residente na {{ cliente_endereco }}.
+            </p>
+        </div>
+
+        <!-- SEÇÃO 2: OBJETO -->
+        <div class="section">
+            <h2>2. DO OBJETO</h2>
+            <p>
+                O presente contrato tem por objeto a prestação de <strong>serviços de {{ contrato_tipo }}</strong>,
+                conforme o plano <strong>"{{ contrato_titulo }}"</strong>,
+                com as seguintes características técnicas:
+            </p>
+            <p><strong>Descrição:</strong> {{ contrato_descricao }}</p>
+            <p><strong>Valor:</strong> {{ contrato_valor }} por mês</p>
+            <p><strong>Período:</strong> {{ data_vigencia_inicio }} a {{ data_vigencia_fim }}</p>
+        </div>
+
+        <!-- SEÇÃO 3: OBRIGAÇÕES DA CONTRATADA -->
+        <div class="section">
+            <h2>3. DAS OBRIGAÇÕES DA CONTRATADA</h2>
+            <p>A CONTRATADA compromete-se a:</p>
+            <ul>
+                <li>Prestar o serviço com qualidade e eficiência;</li>
+                <li>Manter disponibilidade de 99% do tempo mensal;</li>
+                <li>Fornecer suporte técnico conforme horário comercial;</li>
+                <li>Emitir faturas mensais com vencimento no 10º dia de cada mês;</li>
+                <li>Cumprir a Lei Geral de Proteção de Dados (LGPD).</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 4: OBRIGAÇÕES DO CONTRATANTE -->
+        <div class="section">
+            <h2>4. DAS OBRIGAÇÕES DO CONTRATANTE</h2>
+            <p>O CONTRATANTE obriga-se a:</p>
+            <ul>
+                <li>Utilizar o serviço de forma lícita e ética;</li>
+                <li>Pagar as faturas no vencimento;</li>
+                <li>Comunicar problemas imediatamente;</li>
+                <li>Não compartilhar acesso sem autorização;</li>
+                <li>Permitir acesso técnico para manutenções.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 5: PAGAMENTO E MULTAS -->
+        <div class="section">
+            <h2>5. DO PAGAMENTO E MULTAS</h2>
+            <p>
+                As faturas vencerão no 10º dia de cada mês. Em caso de atraso:
+            </p>
+            <ul>
+                <li><strong>Até 5 dias:</strong> 2% de multa;</li>
+                <li><strong>6 a 15 dias:</strong> 5% de multa + 1% de juros ao mês;</li>
+                <li><strong>Mais de 15 dias:</strong> suspensão automática.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 6: VIGÊNCIA -->
+        <div class="section">
+            <h2>6. DA VIGÊNCIA E RESCISÃO</h2>
+            <p>
+                Este contrato vigerá por 12 meses e renovar-se-á automaticamente,
+                salvo cancelamento com 30 dias de antecedência.
+            </p>
+            <p>
+                Cancelamento antecipado pelo CONTRATANTE acarretará multa de 30%
+                sobre o saldo remanescente.
+            </p>
+        </div>
+
+        <!-- SEÇÃO 7: FORO -->
+        <div class="section">
+            <h2>7. DO FORO</h2>
+            <p>
+                Fica eleito o foro da comarca onde estiver a CONTRATADA para
+                resolver qualquer questão decorrente deste instrumento.
+            </p>
+        </div>
+
+        <!-- ASSINATURAS -->
+        <div class="signature-block">
+            <div class="signature">
+                <p>&nbsp;</p>
+                <p>_______________________________</p>
+                <p class="name">{{ empresa_nome }}</p>
+                <p class="role">CONTRATADA</p>
+            </div>
+            <div class="signature">
+                <p>&nbsp;</p>
+                <p>_______________________________</p>
+                <p class="name">{{ cliente_nome }}</p>
+                <p class="role">CONTRATANTE</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

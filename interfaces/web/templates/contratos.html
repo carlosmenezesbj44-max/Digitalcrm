@@ -1,0 +1,548 @@
+{% extends "layout.html" %}
+
+{% block title %}Contratos - CRM Provedor{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* CSS específico para Contratos */
+    .contrato-card {
+        border: 1px solid var(--border-color);
+        background-color: var(--card-bg);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .contrato-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .contrato-card.status-aguardando { border-left: 5px solid var(--warning-color); }
+    .contrato-card.status-assinado { border-left: 5px solid var(--primary-color); }
+    .contrato-card.status-liberado { border-left: 5px solid var(--success-color); }
+    
+    .stats-card {
+        border-radius: 12px;
+        padding: 20px;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-color);
+    }
+    
+    .stats-card .card-title {
+        font-size: 1.8rem;
+        font-weight: 800;
+        margin-bottom: 5px;
+        color: var(--text-main);
+    }
+    
+    .stats-card .card-text {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-secondary);
+    }
+
+    .stats-card.active {
+        border-color: var(--primary-color);
+        background-color: var(--hover-bg);
+    }
+    
+    .filter-card {
+        position: relative;
+    }
+    
+    @media (max-width: 768px) {
+        .stats-card {
+            margin-bottom: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-0" style="color: var(--text-main); font-weight: 700;"><i class="bi bi-file-text"></i> Contratos</h1>
+            <p style="color: var(--text-secondary); opacity: 0.8;" class="mb-0">Gerencie os contratos do sistema</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/contratos/exportar/csv" class="btn btn-outline-secondary border-0 shadow-sm px-4" style="color: var(--text-main);">
+                <i class="bi bi-download"></i> Exportar CSV
+            </a>
+            <a href="/contratos/novo" class="btn btn-primary border-0 shadow-sm px-4">
+                <i class="bi bi-plus-circle"></i> Novo Contrato
+            </a>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+    {% if success %}
+    <div class="alert alert-success" role="alert">
+        <i class="bi bi-check-circle"></i> Alterações salvas com sucesso.
+    </div>
+    {% endif %}
+
+    <!-- Dashboard de Estatísticas -->
+    <div class="row mb-4" id="statsRow">
+        <div class="col-md-2 col-6 mb-3">
+            <div class="stats-card" onclick="filtrarPorStatus('')">
+                <div class="card-title text-primary">{{ stats.total }}</div>
+                <div class="card-text">Total</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6 mb-3">
+            <div class="stats-card" onclick="filtrarPorStatus('aguardando')">
+                <div class="card-title text-warning">{{ stats.aguardando }}</div>
+                <div class="card-text">Aguardando</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6 mb-3">
+            <div class="stats-card" onclick="filtrarPorStatus('assinado')">
+                <div class="card-title text-info">{{ stats.assinado }}</div>
+                <div class="card-text">Assinado</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6 mb-3">
+            <div class="stats-card" onclick="filtrarPorStatus('liberado')">
+                <div class="card-title text-success">{{ stats.liberado }}</div>
+                <div class="card-text">Liberado</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6 mb-3">
+            <div class="stats-card" onclick="mostrarAlertas('vencendo')">
+                <div class="card-title text-danger">{{ stats.vencendo_30_dias }}</div>
+                <div class="card-text">Vencendo (30d)</div>
+            </div>
+        </div>
+        <div class="col-md-2 col-6 mb-3">
+            <div class="stats-card" onclick="mostrarAlertas('vencidos')">
+                <div class="card-title text-dark">{{ stats.vencidos }}</div>
+                <div class="card-text">Vencidos</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Filtros -->
+    <div class="card mb-4 border-0 shadow-sm filter-card" style="background: var(--card-bg);">
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" class="form-control border-secondary bg-transparent text-white" id="searchInput" placeholder="Buscar contratos..." style="color: var(--text-main);">
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select border-secondary bg-transparent text-white" id="statusFilter" style="color: var(--text-main);">
+                        <option value="" class="bg-dark">Todos os Status</option>
+                        <option value="aguardando" class="bg-dark">Aguardando</option>
+                        <option value="assinado" class="bg-dark">Assinado</option>
+                        <option value="liberado" class="bg-dark">Liberado</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select border-secondary bg-transparent text-white" id="tipoFilter" style="color: var(--text-main);">
+                        <option value="" class="bg-dark">Todos os Tipos</option>
+                        <option value="servico" class="bg-dark">Serviço</option>
+                        <option value="assinatura" class="bg-dark">Assinatura</option>
+                        <option value="manutencao" class="bg-dark">Manutenção</option>
+                        <option value="suporte" class="bg-dark">Suporte</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control border-secondary bg-transparent text-white" id="dataInicioFilter" placeholder="Data Início" style="color: var(--text-main);">
+                </div>
+                <div class="col-md-2">
+                    <input type="date" class="form-control border-secondary bg-transparent text-white" id="dataFimFilter" placeholder="Data Fim" style="color: var(--text-main);">
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-primary w-100 border-0 shadow-sm" onclick="filtrarContratos()">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visualização Cards -->
+    <div id="viewCards" class="row">
+        {% if contratos %}
+            {% for contrato in contratos %}
+            <div class="col-md-6 col-lg-4 mb-4 contrato-card-item" 
+                 data-criacao="{{ contrato.data_criacao.isoformat() if contrato.data_criacao else '' }}"
+                 data-tipo="{{ contrato.tipo_contrato }}"
+                 data-status="{{ contrato.status_assinatura }}"
+                 data-titulo="{{ contrato.titulo|lower }}"
+                 data-cliente="{{ contrato.cliente_nome|lower }}">
+                <div class="contrato-card status-{{ contrato.status_assinatura }}">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="mb-0 fw-bold" style="color: var(--text-main);">{{ contrato.titulo }}</h5>
+                        <span class="badge {% if contrato.status_assinatura == 'aguardando' %}bg-warning text-dark{% elif contrato.status_assinatura == 'assinado' %}bg-info{% else %}bg-success{% endif %}" style="font-weight: 500;">
+                            {{ contrato.status_assinatura|title }}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <small style="color: var(--text-secondary); opacity: 0.8;" class="d-block">Cliente</small>
+                        <span class="fw-bold" style="color: var(--text-main);"><i class="bi bi-person text-primary"></i> {{ contrato.cliente_nome }}</span>
+                    </div>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <small style="color: var(--text-secondary); opacity: 0.8;" class="d-block">Tipo</small>
+                            <span class="fw-bold" style="color: var(--text-main);">{{ contrato.tipo_contrato.title() }}</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <small style="color: var(--text-secondary); opacity: 0.8;" class="d-block">Valor</small>
+                            <span class="fw-bold text-primary">R$ {{ "%.2f"|format(contrato.valor_contrato) if contrato.valor_contrato else '0.00' }}</span>
+                        </div>
+                    </div>
+                    
+                    <p style="color: var(--text-secondary); opacity: 0.7;" class="small mb-4">
+                        <i class="bi bi-calendar"></i> Criado em: {{ contrato.data_criacao.strftime('%d/%m/%Y') if contrato.data_criacao else 'N/A' }}
+                    </p>
+                    
+                    <div class="d-flex gap-2 mt-auto">
+                        {% if contrato.status_assinatura == 'aguardando' %}
+                        <button class="btn btn-success btn-sm flex-grow-1 border-0 shadow-sm" onclick="liberarContrato({{ contrato.id }})">
+                            <i class="bi bi-check-circle"></i> Liberar
+                        </button>
+                        {% endif %}
+                        <a href="/contratos/{{ contrato.id }}/editar" class="btn btn-sm btn-outline-secondary border-0 shadow-sm flex-grow-1" style="color: var(--text-main);">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        <button class="btn btn-sm btn-primary border-0 shadow-sm" onclick="verDetalhes({{ contrato.id }})" title="Ver Detalhes">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger border-0 shadow-sm" onclick="excluirContrato({{ contrato.id }})" title="Excluir">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-file-text display-4 mb-3" style="color: var(--text-secondary); opacity: 0.3;"></i>
+                <br><span style="color: var(--text-secondary);">Nenhum contrato encontrado</span>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Visualização Tabela -->
+    <div id="viewTable" class="table-responsive" style="display: none;">
+        <table class="table mb-0" id="tabelaContratos">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th style="color: var(--text-main);">ID</th>
+                    <th style="color: var(--text-main);">Título</th>
+                    <th style="color: var(--text-main);">Cliente</th>
+                    <th style="color: var(--text-main);">Tipo</th>
+                    <th style="color: var(--text-main);">Valor</th>
+                    <th style="color: var(--text-main);">Status</th>
+                    <th style="color: var(--text-main);">Data Criação</th>
+                    <th class="text-end" style="color: var(--text-main);">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if contratos %}
+                    {% for contrato in contratos %}
+                    <tr class="contrato-item" data-status="{{ contrato.status_assinatura }}" data-tipo="{{ contrato.tipo_contrato }}" style="border-bottom: 1px solid var(--border-color);">
+                        <td style="color: var(--text-main); font-weight: 500;">{{ contrato.id }}</td>
+                        <td style="color: var(--text-main);">{{ contrato.titulo }}</td>
+                        <td style="color: var(--text-main);">{{ contrato.cliente_nome }}</td>
+                        <td style="color: var(--text-secondary);">{{ contrato.tipo_contrato.title() }}</td>
+                        <td class="fw-bold text-primary">R$ {{ "%.2f"|format(contrato.valor_contrato) if contrato.valor_contrato else '-' }}</td>
+                        <td>
+                            <span class="badge {% if contrato.status_assinatura == 'aguardando' %}bg-warning text-dark{% elif contrato.status_assinatura == 'assinado' %}bg-info{% else %}bg-success{% endif %}" style="font-weight: 500;">
+                                {{ contrato.status_assinatura|title }}
+                            </span>
+                        </td>
+                        <td style="color: var(--text-secondary);">{{ contrato.data_criacao.strftime('%d/%m/%Y') if contrato.data_criacao else 'N/A' }}</td>
+                        <td class="text-end">
+                            <div class="btn-group" role="group">
+                                {% if contrato.status_assinatura == 'aguardando' %}
+                                <button class="btn btn-sm btn-success border-0 shadow-sm" onclick="liberarContrato({{ contrato.id }})" title="Liberar">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                                {% endif %}
+                                <a href="/contratos/{{ contrato.id }}/editar" class="btn btn-sm btn-outline-secondary border-0 shadow-sm ms-1" title="Editar" style="color: var(--text-main);">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-secondary border-0 shadow-sm ms-1" onclick="verDetalhes({{ contrato.id }})" title="Detalhes" style="color: var(--text-main);">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary border-0 shadow-sm ms-1 text-danger" onclick="excluirContrato({{ contrato.id }})" title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5">
+                            <i class="bi bi-file-text display-4 mb-3" style="color: var(--text-secondary); opacity: 0.3;"></i>
+                            <br><span style="color: var(--text-secondary);">Nenhum contrato encontrado</span>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal de Detalhes do Contrato -->
+    <div class="modal fade" id="contratoDetalhesModal" tabindex="-1" aria-labelledby="contratoDetalhesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border-color);">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="contratoDetalhesModalLabel"><i class="bi bi-file-text"></i> Detalhes do Contrato</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <small class="text-muted">ID</small>
+                            <div id="contratoDetalhesId" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-md-8">
+                            <small class="text-muted">Título</small>
+                            <div id="contratoDetalhesTitulo" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Cliente ID</small>
+                            <div id="contratoDetalhesClienteId" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Tipo</small>
+                            <div id="contratoDetalhesTipo" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Status</small>
+                            <div id="contratoDetalhesStatus" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Valor</small>
+                            <div id="contratoDetalhesValor" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Criação</small>
+                            <div id="contratoDetalhesCriacao" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Assinatura</small>
+                            <div id="contratoDetalhesAssinatura" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">Vigência Início</small>
+                            <div id="contratoDetalhesVigenciaInicio" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted">Vigência Fim</small>
+                            <div id="contratoDetalhesVigenciaFim" class="fw-bold">-</div>
+                        </div>
+                        <div class="col-12">
+                            <small class="text-muted">Observações</small>
+                            <div id="contratoDetalhesObservacoes" class="fw-bold">Sem observações</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <a id="contratoDetalhesPdf" class="btn btn-outline-primary" target="_blank">
+                        <i class="bi bi-file-earmark-pdf"></i> Abrir PDF
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentView = 'cards';
+
+    // Alternar visualização
+    function setView(view) {
+        currentView = view;
+        document.getElementById('viewCards').style.display = view === 'cards' ? 'flex' : 'none';
+        document.getElementById('viewTable').style.display = view === 'table' ? 'block' : 'none';
+        
+        document.getElementById('viewBtnCards').classList.toggle('active', view === 'cards');
+        document.getElementById('viewBtnTable').classList.toggle('active', view === 'table');
+    }
+
+    // Filtrar contratos
+    function filtrarContratos() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const status = document.getElementById('statusFilter').value;
+        const tipo = document.getElementById('tipoFilter').value;
+        
+        const items = document.querySelectorAll('.contrato-card-item, .contrato-item');
+        items.forEach(item => {
+            const matchSearch = !search || 
+                item.dataset.titulo?.includes(search) || 
+                item.dataset.cliente?.includes(search);
+            const matchStatus = !status || item.dataset.status === status;
+            const matchTipo = !tipo || item.dataset.tipo === tipo;
+            
+            item.style.display = (matchSearch && matchStatus && matchTipo) ? '' : 'none';
+        });
+    }
+
+    // Filtrar por status
+    function filtrarPorStatus(status) {
+        document.getElementById('statusFilter').value = status;
+        filtrarContratos();
+    }
+
+    // Mostrar alertas
+    function mostrarAlertas(tipo) {
+        showToast(`Mostrando contratos ${tipo}`, 'info');
+    }
+
+    // Liberar contrato
+    async function liberarContrato(id) {
+        if (!confirm('Deseja liberar este contrato?')) return;
+        
+        showLoading('Liberando contrato...');
+        try {
+            await CRM.api.post(`/contratos/${id}/liberar`);
+            showToast('Contrato liberado com sucesso!', 'success');
+            location.reload();
+        } catch (error) {
+            showToast(error.message || 'Erro ao liberar contrato', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Ver detalhes (modal)
+    async function verDetalhes(id) {
+        showLoading('Carregando detalhes...');
+        try {
+            const response = await fetch(`/contratos/${id}/detalhes`);
+            if (!response.ok) {
+                throw new Error('Não foi possível carregar os detalhes.');
+            }
+            const data = await response.json();
+
+            preencherModalContrato(data);
+
+            const modalEl = document.getElementById('contratoDetalhesModal');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        } catch (error) {
+            showToast(error.message || 'Erro ao carregar detalhes', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Excluir contrato
+    async function excluirContrato(id) {
+        if (!confirm('Tem certeza que deseja excluir este contrato? Esta ação não pode ser desfeita.')) return;
+        
+        showLoading('Excluindo contrato...');
+        try {
+            // Usar o objeto CRM.api se disponível (comum no projeto) ou fetch direto
+            if (window.CRM && CRM.api) {
+                await CRM.api.delete(`/contratos/${id}`);
+            } else {
+                const response = await fetch(`/api/v1/contratos/${id}`, { 
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.detail || 'Erro ao excluir contrato');
+                }
+            }
+            
+            showToast('Contrato excluído com sucesso!', 'success');
+            location.reload();
+        } catch (error) {
+            console.error('Erro ao excluir:', error);
+            showToast(error.message || 'Erro ao excluir contrato', 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Busca com debounce
+        initSearch('searchInput', filtrarContratos, 300);
+        
+        // Listeners de filtro
+        document.getElementById('statusFilter')?.addEventListener('change', filtrarContratos);
+        document.getElementById('tipoFilter')?.addEventListener('change', filtrarContratos);
+    });
+
+    function preencherModalContrato(contrato) {
+        document.getElementById('contratoDetalhesId').textContent = contrato.id ?? '-';
+        document.getElementById('contratoDetalhesTitulo').textContent = contrato.titulo || '-';
+        document.getElementById('contratoDetalhesClienteId').textContent = contrato.cliente_id ?? '-';
+        document.getElementById('contratoDetalhesTipo').textContent = contrato.tipo_contrato || '-';
+        document.getElementById('contratoDetalhesStatus').innerHTML = renderStatusBadge(contrato.status_assinatura);
+        document.getElementById('contratoDetalhesValor').textContent = formatCurrency(contrato.valor_contrato, contrato.moeda);
+        document.getElementById('contratoDetalhesCriacao').textContent = formatDateTime(contrato.data_criacao);
+        document.getElementById('contratoDetalhesAssinatura').textContent = formatDateTime(contrato.data_assinatura);
+        document.getElementById('contratoDetalhesVigenciaInicio').textContent = formatDateTime(contrato.data_vigencia_inicio);
+        document.getElementById('contratoDetalhesVigenciaFim').textContent = formatDateTime(contrato.data_vigencia_fim);
+        document.getElementById('contratoDetalhesObservacoes').textContent = contrato.observacoes || 'Sem observações';
+
+        const pdfLink = document.getElementById('contratoDetalhesPdf');
+        pdfLink.href = `/contratos/${contrato.id}/pdf`;
+        pdfLink.style.display = contrato.id ? 'inline-flex' : 'none';
+    }
+
+    function renderStatusBadge(status) {
+        let cls = 'bg-secondary';
+        if (status === 'aguardando') cls = 'bg-warning text-dark';
+        else if (status === 'assinado') cls = 'bg-info';
+        else if (status === 'liberado') cls = 'bg-success';
+        return `<span class="badge ${cls}">${(status || 'N/A')}</span>`;
+    }
+
+    function formatDateTime(value) {
+        if (!value) return 'N/A';
+        try {
+            const dt = new Date(value);
+            return dt.toLocaleString('pt-BR');
+        } catch (e) {
+            return value;
+        }
+    }
+
+    function formatCurrency(value, moeda) {
+        if (value === null || value === undefined) return 'N/A';
+        const currency = moeda || 'BRL';
+        try {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value);
+        } catch (e) {
+            return `R$ ${Number(value).toFixed(2)}`;
+        }
+    }
+</script>
+{% endblock %}

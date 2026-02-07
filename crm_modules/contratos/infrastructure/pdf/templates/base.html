@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTRATO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #000;
+            background: white;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 10pt;
+            margin: 5px 0;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        
+        .section h2 {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+        }
+        
+        .section p {
+            margin-bottom: 8px;
+            text-align: justify;
+        }
+        
+        .section ul {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .section ul li {
+            margin-bottom: 5px;
+            text-align: justify;
+        }
+        
+        .signature-block {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+        }
+        
+        .signature {
+            width: 48%;
+            text-align: center;
+            border-top: 1px solid #000;
+            padding-top: 10px;
+        }
+        
+        .signature p {
+            margin: 5px 0;
+            font-size: 10pt;
+        }
+        
+        .signature .name {
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        
+        .signature .role {
+            font-style: italic;
+            margin-top: 5px;
+        }
+        
+        .info-table {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .info-table tr td {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-table tr td:first-child {
+            font-weight: bold;
+            width: 30%;
+        }
+        
+        strong {
+            font-weight: bold;
+        }
+        
+        .date-info {
+            text-align: right;
+            margin-bottom: 30px;
+            font-size: 10pt;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+            }
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- CABEÇALHO -->
+        <div class="header">
+            {% if empresa_logo %}
+            <img src="{{ empresa_logo }}" alt="Logo" style="max-height: 80px; margin-bottom: 15px;">
+            {% endif %}
+            <h1>CONTRATO</h1>
+            <p><strong>{{ empresa_nome }}</strong></p>
+            <p><strong>Contrato nº:</strong> {{ contrato_id }}</p>
+            <div class="date-info"><strong>Data:</strong> {{ data_atual }}</div>
+        </div>
+
+        <!-- SEÇÃO 1: PARTES -->
+        <div class="section">
+            <h2>1. DAS PARTES</h2>
+            <p>
+                <strong>CONTRATADA:</strong> {{ empresa_razao_social or empresa_nome }}, pessoa jurídica de direito privado,
+                inscrita no CNPJ sob nº {{ empresa_cnpj }}, {% if empresa_ie %}IE nº {{ empresa_ie }},{% endif %}
+                com sede na {{ empresa_endereco }}, {% if empresa_telefone %}telefone {{ empresa_telefone }},{% endif %}
+                {% if empresa_email %}e-mail {{ empresa_email }},{% endif %}
+                neste ato representada conforme seus poderes.
+            </p>
+            <p style="margin-top: 10px;">
+                <strong>CONTRATANTE:</strong> {{ cliente_nome }}, pessoa física ou jurídica,
+                {% if cliente_cpf != 'N/A' %}CPF nº {{ cliente_cpf }},{% endif %}
+                {% if cliente_cnpj != 'N/A' %}CNPJ nº {{ cliente_cnpj }},{% endif %}
+                residente/com sede no(a) {{ cliente_endereco }}.
+            </p>
+        </div>
+
+        <!-- SEÇÃO 2: OBJETO -->
+        <div class="section">
+            <h2>2. DO OBJETO</h2>
+            <p>
+                O presente contrato tem por objeto a prestação de {{ contrato_tipo }},
+                conforme descrito no plano <strong>"{{ contrato_titulo }}"</strong>,
+                com as características técnicas e valores descritos neste instrumento.
+            </p>
+            <table class="info-table">
+                <tr>
+                    <td>Descrição:</td>
+                    <td>{{ contrato_descricao }}</td>
+                </tr>
+                <tr>
+                    <td>Valor do Contrato:</td>
+                    <td>{{ contrato_valor }}</td>
+                </tr>
+                <tr>
+                    <td>Vigência:</td>
+                    <td>De {{ data_vigencia_inicio }} a {{ data_vigencia_fim }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- SEÇÃO 3: OBRIGAÇÕES DA CONTRATADA -->
+        <div class="section">
+            <h2>3. DAS OBRIGAÇÕES DA CONTRATADA</h2>
+            <p>A CONTRATADA compromete-se a:</p>
+            <ul>
+                <li>Fornecer o serviço conforme contratado;</li>
+                <li>Manter a disponibilidade do serviço em pelo menos 99% do tempo mensal;</li>
+                <li>Prestar suporte técnico adequado;</li>
+                <li>Emitir faturas mensais com vencimento no dia 10 de cada mês;</li>
+                <li>Respeitar a legislação vigente sobre proteção de dados pessoais.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 4: OBRIGAÇÕES DO CONTRATANTE -->
+        <div class="section">
+            <h2>4. DAS OBRIGAÇÕES DO CONTRATANTE</h2>
+            <p>O CONTRATANTE obriga-se a:</p>
+            <ul>
+                <li>Utilizar o serviço de forma lícita e ética;</li>
+                <li>Pagar pontualmente as faturas emitidas;</li>
+                <li>Comunicar imediatamente eventuais problemas técnicos;</li>
+                <li>Não compartilhar o acesso com terceiros não autorizados;</li>
+                <li>Permitir o acesso dos técnicos da CONTRATADA para manutenções quando necessário.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 5: PAGAMENTO -->
+        <div class="section">
+            <h2>5. DO PAGAMENTO</h2>
+            <p>
+                O pagamento será efetuado mensalmente, com vencimento no dia 10 de cada mês.
+                Em caso de atraso:
+            </p>
+            <ul>
+                <li><strong>Até 5 dias:</strong> multa de 2% sobre o valor;</li>
+                <li><strong>De 6 a 15 dias:</strong> multa de 5% + juros de 1% ao mês;</li>
+                <li><strong>Acima de 15 dias:</strong> suspensão do serviço até regularização.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 6: VIGÊNCIA E RESCISÃO -->
+        <div class="section">
+            <h2>6. DA VIGÊNCIA E RESCISÃO</h2>
+            <p>
+                O presente contrato tem vigência de 12 (doze) meses, renovando-se automaticamente
+                por iguais períodos, salvo manifestação contrária de qualquer das partes com
+                antecedência mínima de 30 dias.
+            </p>
+            <p style="margin-top: 10px;">
+                A rescisão antecipada por parte do CONTRATANTE implica em multa de 30% sobre os
+                valores remanescentes do contrato.
+            </p>
+        </div>
+
+        <!-- SEÇÃO 7: DISPOSIÇÕES GERAIS -->
+        <div class="section">
+            <h2>7. DISPOSIÇÕES GERAIS</h2>
+            <p>
+                Fica eleito o foro da comarca onde estiver situ a CONTRATADA, renunciando a
+                qualquer outro, por mais privilegiado que seja, para dirimir eventuais questões
+                decorrentes deste contrato.
+            </p>
+            <p style="margin-top: 10px;">
+                E por estarem assim justos e contratados, assinam o presente instrumento em
+                duas vias de igual teor, na data acima mencionada.
+            </p>
+        </div>
+
+        <!-- ASSINATURAS -->
+        <div class="signature-block">
+            <div class="signature">
+                <p>&nbsp;</p>
+                <p>&nbsp;</p>
+                <p>_________________________________</p>
+                <p class="name">{{ empresa_nome }}</p>
+                <p class="role">CONTRATADA</p>
+            </div>
+            <div class="signature">
+                <p>&nbsp;</p>
+                <p>&nbsp;</p>
+                <p>_________________________________</p>
+                <p class="name">{{ cliente_nome }}</p>
+                <p class="role">CONTRATANTE</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
