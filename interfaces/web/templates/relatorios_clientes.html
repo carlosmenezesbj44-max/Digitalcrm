@@ -241,7 +241,7 @@
                                         {{ 'Ativo' if cliente.ativo else 'Inativo' }}
                                     </span>
                                 </td>
-                                <td>{{ cliente.data_criacao.strftime('%d/%m/%Y') if cliente.data_criacao else 'N/A' }}</td>
+                                <td>{{ cliente.data_cadastro.strftime('%d/%m/%Y') if cliente.data_cadastro else (cliente.data_criacao.strftime('%d/%m/%Y') if cliente.data_criacao else 'N/A') }}</td>
                                 <td>
                                     {% if cliente.plano_id and cliente.plano_valor %}
                                         R$ {{ "%.2f"|format(cliente.plano_valor) }}

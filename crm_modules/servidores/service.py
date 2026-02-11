@@ -12,6 +12,19 @@ class ServidorService:
         else:
             self.repository = ServidorRepository(session=repository_session) if repository_session is not None else ServidorRepository()
 
+    def _to_domain(self, model: ServidorModel) -> Servidor:
+        return Servidor(
+            id=model.id,
+            nome=model.nome,
+            ip=model.ip,
+            tipo_conexao=model.tipo_conexao,
+            tipo_acesso=model.tipo_acesso,
+            usuario=model.usuario,
+            senha=model.senha,
+            alterar_nome=model.alterar_nome,
+            ativo=model.ativo,
+        )
+
     def criar_servidor(self, servidor_data: ServidorCreate) -> Servidor:
         # Validate
         if not servidor_data.nome or not servidor_data.ip:
@@ -35,36 +48,13 @@ class ServidorService:
 
         model = self.repository.create(model)
 
-        # Create domain object to return
-        servidor = Servidor(
-            id=model.id,
-            nome=model.nome,
-            ip=model.ip,
-            tipo_conexao=model.tipo_conexao,
-            tipo_acesso=model.tipo_acesso,
-            usuario=model.usuario,
-            senha=model.senha,
-            alterar_nome=model.alterar_nome,
-            ativo=model.ativo,
-        )
-
-        return servidor
+        return self._to_domain(model)
 
     def obter_servidor(self, servidor_id: int) -> Servidor:
         model = self.repository.get_by_id(servidor_id)
         if not model:
             raise NotFoundException("Servidor não encontrado")
-        return Servidor(
-            id=model.id,
-            nome=model.nome,
-            ip=model.ip,
-            tipo_conexao=model.tipo_conexao,
-            tipo_acesso=model.tipo_acesso,
-            usuario=model.usuario,
-            senha=model.senha,
-            alterar_nome=model.alterar_nome,
-            ativo=model.ativo,
-        )
+        return self._to_domain(model)
 
     def atualizar_servidor(self, servidor_id: int, update_data: ServidorUpdate) -> Servidor:
         model = self.repository.get_by_id(servidor_id)
@@ -91,27 +81,30 @@ class ServidorService:
 
         self.repository.update(model)
 
-        return self.obter_servidor(servidor_id)
+        return self._to_domain(model)
 
     def desativar_servidor(self, servidor_id: int) -> Servidor:
-        servidor = self.obter_servidor(servidor_id)
-        servidor.ativo = False
         model = self.repository.get_by_id(servidor_id)
+        if not model:
+            raise NotFoundException("Servidor não encontrado")
         model.ativo = False
         self.repository.update(model)
-        return servidor
+        return self._to_domain(model)
 
     def listar_servidores(self):
         models = self.repository.get_all()
-        return [self.obter_servidor(m.id) for m in models]
+        return [self._to_domain(m) for m in models]
 
-    def listar_servidores_ativos(self):
+    def listar_servidores_ativos(self, verificar_conexao: bool = True):
         models = self.repository.get_active_servers()
         servidores = []
         for model in models:
-            servidor = self.obter_servidor(model.id)
-            # Adicionar status de conexão
-            servidor.status = self._verificar_status_conexao(servidor)
+            servidor = self._to_domain(model)
+            # Adicionar status de conexão apenas se solicitado
+            if verificar_conexao:
+                servidor.status = self._verificar_status_conexao(servidor)
+            else:
+                servidor.status = "unknown"
             servidores.append(servidor)
         return servidores
     

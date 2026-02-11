@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends
+﻿from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -35,6 +35,10 @@ app.include_router(faturamento_router, prefix="/api/v1")
 from crm_modules.faturamento.api import router as faturamento_main_router
 app.include_router(faturamento_main_router, prefix="/api/v1")
 
+# Include Produtos API routes
+from crm_modules.produtos.api import router as produtos_router
+app.include_router(produtos_router, prefix="/api/v1/produtos")
+
 app.mount("/static", StaticFiles(directory="interfaces/web/static"), name="static")
 templates = Jinja2Templates(directory="interfaces/web/templates")
 
@@ -60,10 +64,10 @@ async def dashboard(request: Request):
 
 
 @app.get("/servidores", response_class=HTMLResponse)
-async def servidores(request: Request, db: Session = Depends(get_db)):
+async def servidores(request: Request, db: Session = Depends(get_db), verificar: bool = False):
     from crm_modules.servidores.service import ServidorService
     service = ServidorService(repository_session=db)
-    servidores = service.listar_servidores_ativos()
+    servidores = service.listar_servidores_ativos(verificar_conexao=verificar)
     return templates.TemplateResponse("servidores.html", {"request": request, "servidores": servidores})
 
 
@@ -159,6 +163,29 @@ async def testar_conexao(servidor_id: int, db: Session = Depends(get_db)):
         return {"success": False, "message": str(e)}
 
 
+@app.get("/clientes/novo")
+def novo_cliente_form(request: Request, db: Session = Depends(get_db)):
+    """Exibe formulÃ¡rio para criar novo cliente"""
+    from crm_modules.planos.service import PlanoService
+    from crm_modules.servidores.service import ServidorService
+    from crm_modules.produtos.service import ProdutoService
+    
+    plano_service = PlanoService(repository_session=db)
+    servidores_service = ServidorService(repository_session=db)
+    produto_service = ProdutoService(repository_session=db)
+    
+    planos = plano_service.listar_planos_ativos()
+    servidores = servidores_service.listar_servidores_ativos(verificar_conexao=False)
+    produtos = produto_service.listar_produtos_ativos()
+    
+    return templates.TemplateResponse("novo_cliente.html", {
+        "request": request,
+        "planos": planos,
+        "servidores": servidores,
+        "produtos": produtos
+    })
+
+
 @app.get("/clientes", response_class=HTMLResponse)
 def listar_clientes(request: Request, db: Session = Depends(get_db)):
     from crm_modules.clientes.service import ClienteService
@@ -167,19 +194,161 @@ def listar_clientes(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("clientes.html", {"request": request, "clientes": clientes})
 
 
-@app.get("/test")
-def test(request: Request):
-    return {"message": "test"}
+@app.get("/clientes/{cliente_id}/detalhes", response_class=HTMLResponse)
+def detalhar_cliente(cliente_id: int, request: Request, db: Session = Depends(get_db)):
+    """Exibe detalhes de um cliente especÃ­fico"""
+    from crm_modules.clientes.service import ClienteService
+    from crm_modules.produtos.service import ProdutoService
+    from crm_modules.mikrotik.integration import monitorar_sessoes_mikrotik
+    
+    cliente_service = ClienteService(repository_session=db)
+    produto_service = ProdutoService(repository_session=db)
+    
+    cliente = cliente_service.obter_cliente(cliente_id)
+    produtos = produto_service.listar_produtos_ativos()
+    
+    # Verificar status online no MikroTik
+    online = False
+    ip_atual = None
+    if cliente.username:
+        try:
+            sessoes = monitorar_sessoes_mikrotik()
+            for sessao in sessoes:
+                if sessao.get('name') == cliente.username:
+                    online = True
+                    ip_atual = sessao.get('address')
+                    break
+        except Exception as e:
+            print(f"Erro ao verificar status online: {e}")
+            
+    # Adicionar atributos dinÃ¢micos para o template
+    cliente.online = online
+    cliente.ip_atual = ip_atual
+    
+    return templates.TemplateResponse("cliente_detalhes.html", {
+        "request": request,
+        "cliente": cliente,
+        "produtos": produtos
+    })
 
 
-@app.get("/clientes/novo")
-def novo_cliente_form(request: Request):
-    return templates.TemplateResponse("novo_cliente.html", {"request": request})
+@app.post("/clientes/{cliente_id}/desativar")
+async def desativar_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    """Desativa um cliente"""
+    from crm_modules.clientes.service import ClienteService
+    try:
+        service = ClienteService(repository_session=db)
+        service.desativar_cliente(cliente_id)
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/clientes", status_code=303)
+    except Exception as e:
+        # Em caso de erro, redireciona com erro (idealmente via flash message, mas vamos simplificar)
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/clientes", status_code=303)
+
+
+@app.get("/clientes/{cliente_id}/editar", response_class=HTMLResponse)
+def editar_cliente_form(cliente_id: int, request: Request, db: Session = Depends(get_db)):
+    """Exibe formulÃ¡rio para editar um cliente existente"""
+    from crm_modules.clientes.service import ClienteService
+    from crm_modules.planos.service import PlanoService
+    from crm_modules.servidores.service import ServidorService
+    from crm_modules.produtos.service import ProdutoService
+
+    cliente_service = ClienteService(repository_session=db)
+    plano_service = PlanoService(repository_session=db)
+    servidores_service = ServidorService(repository_session=db)
+    produto_service = ProdutoService(repository_session=db)
+
+    cliente = cliente_service.obter_cliente(cliente_id)
+    planos = plano_service.listar_planos_ativos()
+    servidores = servidores_service.listar_servidores_ativos(verificar_conexao=False)
+    produtos = produto_service.listar_produtos_ativos()
+
+    return templates.TemplateResponse("novo_cliente.html", {
+        "request": request,
+        "cliente": cliente,
+        "planos": planos,
+        "servidores": servidores,
+        "produtos": produtos
+    })
+
+
+@app.post("/clientes/{cliente_id}/editar")
+async def atualizar_cliente(cliente_id: int, request: Request, db: Session = Depends(get_db)):
+    """Atualiza um cliente existente"""
+    from crm_modules.clientes.service import ClienteService
+    from crm_modules.clientes.schemas import ClienteUpdate
+    try:
+        form_data = await request.form()
+
+        # Coletar dados do formulÃ¡rio
+        cliente_data = {
+            "nome": form_data.get("nome"),
+            "email": form_data.get("email"),
+            "telefone": form_data.get("telefone"),
+            "cpf": form_data.get("cpf"),
+            "rua": form_data.get("rua"),
+            "numero": form_data.get("numero"),
+            "bairro": form_data.get("bairro"),
+            "cidade": form_data.get("cidade"),
+            "cep": form_data.get("cep"),
+            "complemento": form_data.get("complemento"),
+            "tipo_localidade": form_data.get("tipo_localidade"),
+            "telefone2": form_data.get("telefone2"),
+            "whatsapp": form_data.get("whatsapp"),
+            "plano_id": int(form_data.get("plano_id")) if form_data.get("plano_id") else None,
+            "servidor_id": int(form_data.get("servidor_id")) if form_data.get("servidor_id") else None,
+            "username": form_data.get("username"),
+            "password": form_data.get("password"),
+            "tipo_servico": form_data.get("tipo_servico"),
+            "dia_vencimento": int(form_data.get("dia_vencimento")) if form_data.get("dia_vencimento") else None,
+            "data_instalacao": form_data.get("data_instalacao") if form_data.get("data_instalacao") else None,
+            "status_servico": form_data.get("status_servico"),
+            "profile": form_data.get("profile"),
+            "comentario_login": form_data.get("comentario_login"),
+            "tipo_cliente": form_data.get("tipo_cliente"),
+            "rg": form_data.get("rg"),
+            "data_nascimento": form_data.get("data_nascimento") if form_data.get("data_nascimento") else None,
+            "produto_ids": [],  # TODO: implementar produtos
+            "ativo": True
+        }
+
+        service = ClienteService(repository_session=db)
+        cliente_update = ClienteUpdate(**cliente_data)
+        service.atualizar_cliente(cliente_id, cliente_update)
+
+        # Processar upload da foto da casa
+        foto_casa_file = form_data.get("foto_casa_file")
+        if foto_casa_file and hasattr(foto_casa_file, 'filename') and foto_casa_file.filename:
+            try:
+                content = await foto_casa_file.read()
+                service.upload_foto_casa(cliente_id, content, foto_casa_file.filename)
+            except Exception as e:
+                print(f"Erro ao fazer upload da foto da casa: {e}")
+
+        # Processar upload de documentos
+        documentos = form_data.getlist("documentos")
+        for documento in documentos:
+            if hasattr(documento, 'filename') and documento.filename:
+                try:
+                    content = await documento.read()
+                    service.upload_arquivo_cliente(cliente_id, content, documento.filename)
+                except Exception as e:
+                    print(f"Erro ao fazer upload do documento {documento.filename}: {e}")
+
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/clientes", status_code=303)
+    except Exception as e:
+        print(f"Erro ao atualizar cliente: {e}")
+        # Em caso de erro, redirecionar de volta ao formulÃ¡rio
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=f"/clientes/{cliente_id}/editar", status_code=303)
 
 
 @app.get("/planos", response_class=HTMLResponse)
 def listar_planos(request: Request, db: Session = Depends(get_db)):
-    """Exibe página de listagem de planos"""
+    """Exibe pÃ¡gina de listagem de planos"""
     from crm_modules.planos.service import PlanoService
     service = PlanoService(repository_session=db)
     planos = service.listar_planos_ativos()
@@ -188,7 +357,7 @@ def listar_planos(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/planos/novo", response_class=HTMLResponse)
 def novo_plano_form(request: Request):
-    """Exibe formulário para criar novo plano"""
+    """Exibe formulÃ¡rio para criar novo plano"""
     return templates.TemplateResponse("novo_plano.html", {"request": request})
 
 
@@ -220,7 +389,7 @@ async def criar_plano(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/planos/{plano_id}/editar", response_class=HTMLResponse)
 def editar_plano_form(plano_id: int, request: Request, db: Session = Depends(get_db)):
-    """Exibe formulário para editar plano"""
+    """Exibe formulÃ¡rio para editar plano"""
     from crm_modules.planos.service import PlanoService
     service = PlanoService(repository_session=db)
     plano = service.obter_plano(plano_id)
@@ -268,22 +437,298 @@ async def desativar_plano(plano_id: int, db: Session = Depends(get_db)):
         return {"success": False, "message": str(e)}
 
 
+@app.get("/produtos", response_class=HTMLResponse)
+def listar_produtos(request: Request, db: Session = Depends(get_db)):
+    """Exibe pÃ¡gina de listagem de produtos"""
+    from crm_modules.produtos.service import ProdutoService
+    service = ProdutoService(repository_session=db)
+    produtos = service.listar_produtos_ativos()
+    return templates.TemplateResponse("produtos.html", {"request": request, "produtos": produtos})
+
+
+@app.get("/produtos/novo", response_class=HTMLResponse)
+def novo_produto_form(request: Request):
+    """Exibe formulÃ¡rio para criar novo produto"""
+    return templates.TemplateResponse("novo_produto.html", {"request": request})
+
+
+@app.post("/produtos/novo")
+async def criar_produto(request: Request, db: Session = Depends(get_db)):
+    """Cria um novo produto"""
+    from crm_modules.produtos.service import ProdutoService
+    from crm_modules.produtos.schemas import ProdutoCreate
+    
+    try:
+        form_data = await request.form()
+        produto_data = ProdutoCreate(
+            nome=form_data.get("nome"),
+            tipo=form_data.get("tipo"),
+            preco=float(form_data.get("preco")),
+            categoria=form_data.get("categoria"),
+            unidade=form_data.get("unidade"),
+            descricao=form_data.get("descricao"),
+            ativo=form_data.get("ativo") == "sim",
+            preco_custo=float(form_data.get("preco_custo")) if form_data.get("preco_custo") else None,
+            sku=form_data.get("sku"),
+            codigo_barras=form_data.get("codigo_barras"),
+            quantidade_estoque=int(form_data.get("quantidade_estoque")) if form_data.get("quantidade_estoque") else None,
+            estoque_minimo=int(form_data.get("estoque_minimo")) if form_data.get("estoque_minimo") else None,
+            ncm=form_data.get("ncm"),
+            cfop=form_data.get("cfop"),
+            icms=float(form_data.get("icms")) if form_data.get("icms") else None,
+            fornecedor=form_data.get("fornecedor"),
+            imagem_url=form_data.get("imagem_url")
+        )
+        
+        service = ProdutoService(repository_session=db)
+        service.criar_produto(produto_data)
+        
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/produtos", status_code=303)
+    except Exception as e:
+        return templates.TemplateResponse("novo_produto.html", {"request": request, "error": str(e)})
+
+
+@app.get("/produtos/{produto_id}/editar", response_class=HTMLResponse)
+def editar_produto_form(produto_id: int, request: Request, db: Session = Depends(get_db)):
+    """Exibe formulÃ¡rio para editar produto"""
+    from crm_modules.produtos.service import ProdutoService
+    service = ProdutoService(repository_session=db)
+    produto = service.obter_produto(produto_id)
+    return templates.TemplateResponse("novo_produto.html", {"request": request, "produto": produto})
+
+
+@app.post("/produtos/{produto_id}/editar")
+async def atualizar_produto(produto_id: int, request: Request, db: Session = Depends(get_db)):
+    """Atualiza um produto"""
+    from crm_modules.produtos.service import ProdutoService
+    from crm_modules.produtos.schemas import ProdutoUpdate
+    
+    try:
+        form_data = await request.form()
+        produto_data = ProdutoUpdate(
+            nome=form_data.get("nome"),
+            tipo=form_data.get("tipo"),
+            preco=float(form_data.get("preco")) if form_data.get("preco") else None,
+            categoria=form_data.get("categoria"),
+            unidade=form_data.get("unidade"),
+            descricao=form_data.get("descricao"),
+            ativo=form_data.get("ativo") == "sim",
+            preco_custo=float(form_data.get("preco_custo")) if form_data.get("preco_custo") else None,
+            sku=form_data.get("sku"),
+            codigo_barras=form_data.get("codigo_barras"),
+            quantidade_estoque=int(form_data.get("quantidade_estoque")) if form_data.get("quantidade_estoque") else None,
+            estoque_minimo=int(form_data.get("estoque_minimo")) if form_data.get("estoque_minimo") else None,
+            ncm=form_data.get("ncm"),
+            cfop=form_data.get("cfop"),
+            icms=float(form_data.get("icms")) if form_data.get("icms") else None,
+            fornecedor=form_data.get("fornecedor"),
+            imagem_url=form_data.get("imagem_url")
+        )
+        
+        service = ProdutoService(repository_session=db)
+        service.atualizar_produto(produto_id, produto_data)
+        
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/produtos", status_code=303)
+    except Exception as e:
+        from crm_modules.produtos.service import ProdutoService
+        service = ProdutoService(repository_session=db)
+        produto = service.obter_produto(produto_id)
+        return templates.TemplateResponse("novo_produto.html", {"request": request, "produto": produto, "error": str(e)})
+
+
+@app.post("/produtos/{produto_id}/excluir")
+async def excluir_produto(produto_id: int, db: Session = Depends(get_db)):
+    """Exclui um produto"""
+    from crm_modules.produtos.service import ProdutoService
+    try:
+        service = ProdutoService(repository_session=db)
+        service.excluir_produto(produto_id)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
 @app.get("/minha-conta", response_class=HTMLResponse)
 def minha_conta(request: Request):
-    """Exibe página de perfil do usuário"""
+    """Exibe pÃ¡gina de perfil do usuÃ¡rio"""
     return templates.TemplateResponse("minha_conta.html", {"request": request})
 
 
 @app.get("/mikrotik/logs", response_class=HTMLResponse)
 def mikrotik_logs(request: Request):
-    """Exibe página de logs do MikroTik"""
+    """Exibe pÃ¡gina de logs do MikroTik"""
     return templates.TemplateResponse("mikrotik_logs.html", {"request": request})
 
 
 @app.get("/mikrotik/sessions", response_class=HTMLResponse)
 def mikrotik_sessions(request: Request):
-    """Exibe página de sessões do MikroTik"""
+    """Exibe pÃ¡gina de sessÃµes do MikroTik"""
     return templates.TemplateResponse("mikrotik_sessions.html", {"request": request})
+
+
+# --- TÃ‰CNICOS ---
+@app.get("/tecnicos", response_class=HTMLResponse)
+def listar_tecnicos(request: Request, db: Session = Depends(get_db)):
+    from crm_modules.tecnicos.service import TecnicoService
+    service = TecnicoService(repository_session=db)
+    tecnicos = service.listar_tecnicos()
+    return templates.TemplateResponse("tecnicos.html", {"request": request, "tecnicos": tecnicos})
+
+
+@app.get("/tecnicos/novo", response_class=HTMLResponse)
+def novo_tecnico_form(request: Request):
+    return templates.TemplateResponse("novo_tecnico.html", {"request": request})
+
+
+@app.post("/tecnicos/novo")
+async def criar_tecnico(request: Request, db: Session = Depends(get_db)):
+    """Cria um novo tÃ©cnico"""
+    from crm_modules.tecnicos.service import TecnicoService
+    from crm_modules.tecnicos.schemas import TecnicoCreate
+    try:
+        form_data = await request.form()
+        tecnico_data = TecnicoCreate(
+            nome=form_data.get("nome"),
+            email=form_data.get("email"),
+            telefone=form_data.get("telefone"),
+            telefone_secundario=form_data.get("telefone_secundario"),
+            cpf=form_data.get("cpf"),
+            data_nascimento=form_data.get("data_nascimento") if form_data.get("data_nascimento") else None,
+            endereco_rua=form_data.get("endereco_rua"),
+            endereco_numero=form_data.get("endereco_numero"),
+            endereco_bairro=form_data.get("endereco_bairro"),
+            endereco_cidade=form_data.get("endereco_cidade"),
+            endereco_estado=form_data.get("endereco_estado"),
+            endereco_cep=form_data.get("endereco_cep"),
+            especialidades=form_data.get("especialidades"),
+            crea=form_data.get("crea"),
+            formacao=form_data.get("formacao"),
+            experiencia_anos=int(form_data.get("experiencia_anos")) if form_data.get("experiencia_anos") else None,
+            data_admissao=form_data.get("data_admissao") if form_data.get("data_admissao") else None,
+            data_demissao=form_data.get("data_demissao") if form_data.get("data_demissao") else None,
+            cargo=form_data.get("cargo"),
+            observacoes=form_data.get("observacoes"),
+            ativo=True
+        )
+        service = TecnicoService(repository_session=db)
+        service.criar_tecnico(tecnico_data)
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/tecnicos", status_code=303)
+    except Exception as e:
+        return templates.TemplateResponse("novo_tecnico.html", {"request": request, "error": str(e)})
+
+
+@app.get("/tecnicos/{tecnico_id}/editar", response_class=HTMLResponse)
+def editar_tecnico_form(tecnico_id: int, request: Request, db: Session = Depends(get_db)):
+    """Exibe formulÃ¡rio para editar um tÃ©cnico existente"""
+    from crm_modules.tecnicos.service import TecnicoService
+    service = TecnicoService(repository_session=db)
+    tecnico = service.obter_tecnico(tecnico_id)
+    return templates.TemplateResponse("novo_tecnico.html", {"request": request, "tecnico": tecnico})
+
+
+@app.post("/tecnicos/{tecnico_id}/editar")
+async def atualizar_tecnico(tecnico_id: int, request: Request, db: Session = Depends(get_db)):
+    """Atualiza um tÃ©cnico existente"""
+    from crm_modules.tecnicos.service import TecnicoService
+    from crm_modules.tecnicos.schemas import TecnicoUpdate
+    try:
+        form_data = await request.form()
+        tecnico_data = TecnicoUpdate(
+            nome=form_data.get("nome"),
+            email=form_data.get("email"),
+            telefone=form_data.get("telefone"),
+            telefone_secundario=form_data.get("telefone_secundario"),
+            cpf=form_data.get("cpf"),
+            data_nascimento=form_data.get("data_nascimento") if form_data.get("data_nascimento") else None,
+            endereco_rua=form_data.get("endereco_rua"),
+            endereco_numero=form_data.get("endereco_numero"),
+            endereco_bairro=form_data.get("endereco_bairro"),
+            endereco_cidade=form_data.get("endereco_cidade"),
+            endereco_estado=form_data.get("endereco_estado"),
+            endereco_cep=form_data.get("endereco_cep"),
+            especialidades=form_data.get("especialidades"),
+            crea=form_data.get("crea"),
+            formacao=form_data.get("formacao"),
+            experiencia_anos=int(form_data.get("experiencia_anos")) if form_data.get("experiencia_anos") else None,
+            data_admissao=form_data.get("data_admissao") if form_data.get("data_admissao") else None,
+            data_demissao=form_data.get("data_demissao") if form_data.get("data_demissao") else None,
+            cargo=form_data.get("cargo"),
+            observacoes=form_data.get("observacoes"),
+            ativo=form_data.get("ativo") == "True"
+        )
+        service = TecnicoService(repository_session=db)
+        service.atualizar_tecnico(tecnico_id, tecnico_data)
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/tecnicos", status_code=303)
+    except Exception as e:
+        service = TecnicoService(repository_session=db)
+        tecnico = service.obter_tecnico(tecnico_id)
+        return templates.TemplateResponse("novo_tecnico.html", {"request": request, "tecnico": tecnico, "error": str(e)})
+
+
+@app.post("/tecnicos/{tecnico_id}/excluir")
+async def excluir_tecnico(tecnico_id: int, db: Session = Depends(get_db)):
+    """Exclui (desativa) um tÃ©cnico"""
+    from crm_modules.tecnicos.service import TecnicoService
+    try:
+        service = TecnicoService(repository_session=db)
+        service.desativar_tecnico(tecnico_id)
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@app.get("/cliente/contratos", response_class=HTMLResponse)
+def listar_contratos_cliente(request: Request, cliente_id: int, db: Session = Depends(get_db)):
+    """Exibe contratos de um cliente especÃ­fico"""
+    from crm_modules.contratos.service import ContratoService
+    try:
+        service = ContratoService(repository_session=db)
+        # Filtrar contratos pelo cliente_id
+        from crm_modules.contratos.models import ContratoModel
+        contratos = db.query(ContratoModel).filter(ContratoModel.cliente_id == cliente_id).all()
+        return templates.TemplateResponse("cliente_contratos.html", {"request": request, "contratos": contratos})
+    except Exception as e:
+        return templates.TemplateResponse("cliente_contratos.html", {"request": request, "contratos": [], "error": str(e)})
+
+
+# --- PROVEDOR (HUAWEI) ---
+@app.get("/huawei/logs", response_class=HTMLResponse)
+def huawei_logs(request: Request):
+    return templates.TemplateResponse("huawei_logs.html", {"request": request})
+
+
+@app.get("/huawei/sessions", response_class=HTMLResponse)
+def huawei_sessions(request: Request):
+    return templates.TemplateResponse("huawei_sessions.html", {"request": request})
+
+
+# --- CONFIGURAÃ‡Ã•ES ---
+@app.get("/configuracoes", response_class=HTMLResponse)
+def configuracoes_geral(request: Request):
+    return templates.TemplateResponse("configuracoes.html", {"request": request})
+
+
+@app.get("/configuracoes/contrato", response_class=HTMLResponse)
+def configuracoes_contrato(request: Request):
+    return templates.TemplateResponse("configuracoes_contrato.html", {"request": request})
+
+
+# --- USUÃRIOS ---
+@app.get("/controle-acesso", response_class=HTMLResponse)
+def controle_acesso(request: Request):
+    return templates.TemplateResponse("controle_acesso.html", {"request": request})
+
+
+@app.get("/usuarios", response_class=HTMLResponse)
+def gerenciar_usuarios(request: Request, db: Session = Depends(get_db)):
+    from crm_modules.usuarios.service import UsuarioService
+    service = UsuarioService(db)
+    usuarios = service.repository.get_all()
+    return templates.TemplateResponse("usuarios.html", {"request": request, "usuarios": usuarios})
 
 
 @app.get("/api/clientes/search")
@@ -301,19 +746,69 @@ async def criar_cliente(request: Request, db: Session = Depends(get_db)):
     from crm_modules.clientes.schemas import ClienteCreate
     try:
         form_data = await request.form()
+
+        # Coletar dados do formulÃ¡rio
         cliente_data = {
             "nome": form_data.get("nome"),
             "email": form_data.get("email"),
             "telefone": form_data.get("telefone"),
             "cpf": form_data.get("cpf"),
-            "endereco": form_data.get("endereco")
+            "rua": form_data.get("rua"),
+            "numero": form_data.get("numero"),
+            "bairro": form_data.get("bairro"),
+            "cidade": form_data.get("cidade"),
+            "cep": form_data.get("cep"),
+            "complemento": form_data.get("complemento"),
+            "tipo_localidade": form_data.get("tipo_localidade"),
+            "telefone2": form_data.get("telefone2"),
+            "whatsapp": form_data.get("whatsapp"),
+            "plano_id": int(form_data.get("plano_id")) if form_data.get("plano_id") else None,
+            "servidor_id": int(form_data.get("servidor_id")) if form_data.get("servidor_id") else None,
+            "username": form_data.get("username"),
+            "password": form_data.get("password"),
+            "tipo_servico": form_data.get("tipo_servico"),
+            "dia_vencimento": int(form_data.get("dia_vencimento")) if form_data.get("dia_vencimento") else None,
+            "data_instalacao": form_data.get("data_instalacao") if form_data.get("data_instalacao") else None,
+            "status_servico": form_data.get("status_servico"),
+            "profile": form_data.get("profile"),
+            "comentario_login": form_data.get("comentario_login"),
+            "tipo_cliente": form_data.get("tipo_cliente"),
+            "rg": form_data.get("rg"),
+            "data_nascimento": form_data.get("data_nascimento") if form_data.get("data_nascimento") else None,
+            "produto_ids": [],  # TODO: implementar produtos
+            "ativo": True
         }
-        service = ClienteService()
+
+        service = ClienteService(repository_session=db)
         cliente_create = ClienteCreate(**cliente_data)
         cliente = service.criar_cliente(cliente_create)
-        return {"success": True, "message": "Cliente cadastrado com sucesso", "cliente_id": cliente.id}
+
+        # Processar upload da foto da casa
+        foto_casa_file = form_data.get("foto_casa_file")
+        if foto_casa_file and hasattr(foto_casa_file, 'filename') and foto_casa_file.filename:
+            try:
+                content = await foto_casa_file.read()
+                service.upload_foto_casa(cliente.id, content, foto_casa_file.filename)
+            except Exception as e:
+                print(f"Erro ao fazer upload da foto da casa: {e}")
+
+        # Processar upload de documentos
+        documentos = form_data.getlist("documentos")
+        for documento in documentos:
+            if hasattr(documento, 'filename') and documento.filename:
+                try:
+                    content = await documento.read()
+                    service.upload_arquivo_cliente(cliente.id, content, documento.filename)
+                except Exception as e:
+                    print(f"Erro ao fazer upload do documento {documento.filename}: {e}")
+
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/clientes", status_code=303)
     except Exception as e:
-        return {"success": False, "message": str(e)}
+        print(f"Erro ao criar cliente: {e}")
+        # Em caso de erro, redirecionar de volta ao formulÃ¡rio
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/clientes/novo", status_code=303)
 
 
 # ============================================
@@ -323,7 +818,7 @@ async def criar_cliente(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/ordens-servico", response_class=HTMLResponse)
 def listar_ordens_servico(request: Request, db: Session = Depends(get_db)):
-    """Lista todas as ordens de serviço"""
+    """Lista todas as ordens de serviÃ§o"""
     try:
         from crm_modules.ordens_servico.service import OrdemServicoService
         service = OrdemServicoService(repository_session=db)
@@ -335,7 +830,7 @@ def listar_ordens_servico(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/ordens-servico/nova", response_class=HTMLResponse)
 def nova_ordem_form(request: Request, db: Session = Depends(get_db)):
-    """Formulário para criar nova ordem de serviço"""
+    """FormulÃ¡rio para criar nova ordem de serviÃ§o"""
     try:
         from crm_modules.clientes.service import ClienteService
         cliente_service = ClienteService(repository_session=db)
@@ -348,11 +843,11 @@ def nova_ordem_form(request: Request, db: Session = Depends(get_db)):
 # ACTION ROUTES - Must come BEFORE generic {ordem_id} route
 @app.post("/ordens-servico/{ordem_id}/iniciar", include_in_schema=False)
 async def iniciar_ordem_web(ordem_id: int, request: Request, db: Session = Depends(get_db)):
-    """Inicia uma ordem de serviço via web"""
+    """Inicia uma ordem de serviÃ§o via web"""
     from crm_modules.ordens_servico.service import OrdemServicoService
     try:
         data = await request.json()
-        tecnico = data.get('tecnico', '') or 'Técnico'
+        tecnico = data.get('tecnico', '') or 'TÃ©cnico'
 
         service = OrdemServicoService(repository_session=db)
         service.iniciar_ordem_servico(ordem_id, tecnico)
@@ -364,7 +859,7 @@ async def iniciar_ordem_web(ordem_id: int, request: Request, db: Session = Depen
 
 @app.post("/ordens-servico/{ordem_id}/aguardando-peca", include_in_schema=False)
 async def aguardando_peca_web(ordem_id: int, request: Request, db: Session = Depends(get_db)):
-    """Marca OS como aguardando peça"""
+    """Marca OS como aguardando peÃ§a"""
     from crm_modules.ordens_servico.service import OrdemServicoService
     try:
         data = await request.json()
@@ -380,7 +875,7 @@ async def aguardando_peca_web(ordem_id: int, request: Request, db: Session = Dep
 
 @app.post("/ordens-servico/{ordem_id}/retomar", include_in_schema=False)
 async def retomar_ordem_web(ordem_id: int, db: Session = Depends(get_db)):
-    """Retoma uma ordem de serviço"""
+    """Retoma uma ordem de serviÃ§o"""
     from crm_modules.ordens_servico.service import OrdemServicoService
     try:
         service = OrdemServicoService(repository_session=db)
@@ -393,7 +888,7 @@ async def retomar_ordem_web(ordem_id: int, db: Session = Depends(get_db)):
 
 @app.post("/ordens-servico/{ordem_id}/concluir", include_in_schema=False)
 async def concluir_ordem_web(ordem_id: int, request: Request, db: Session = Depends(get_db)):
-    """Conclui uma ordem de serviço"""
+    """Conclui uma ordem de serviÃ§o"""
     from crm_modules.ordens_servico.service import OrdemServicoService
     try:
         data = await request.json()
@@ -409,14 +904,14 @@ async def concluir_ordem_web(ordem_id: int, request: Request, db: Session = Depe
 
 @app.post("/ordens-servico/{ordem_id}/cancelar", include_in_schema=False)
 async def cancelar_ordem_web(ordem_id: int, request: Request, db: Session = Depends(get_db)):
-    """Cancela uma ordem de serviço"""
+    """Cancela uma ordem de serviÃ§o"""
     from crm_modules.ordens_servico.service import OrdemServicoService
     try:
         data = await request.json()
         motivo = data.get('motivo', '')
 
         if not motivo:
-            return JSONResponse({"success": False, "message": "Motivo obrigatório"}, status_code=400)
+            return JSONResponse({"success": False, "message": "Motivo obrigatÃ³rio"}, status_code=400)
 
         service = OrdemServicoService(repository_session=db)
         service.cancelar_ordem_servico(ordem_id, motivo)
@@ -428,7 +923,7 @@ async def cancelar_ordem_web(ordem_id: int, request: Request, db: Session = Depe
 
 @app.get("/ordens-servico/{ordem_id}", response_class=HTMLResponse)
 def detalhes_ordem_servico(ordem_id: int, request: Request, db: Session = Depends(get_db)):
-    """Exibe detalhes de uma ordem de serviço"""
+    """Exibe detalhes de uma ordem de serviÃ§o"""
     try:
         from crm_modules.ordens_servico.service import OrdemServicoService
         service = OrdemServicoService(repository_session=db)
@@ -441,7 +936,7 @@ def detalhes_ordem_servico(ordem_id: int, request: Request, db: Session = Depend
 
 @app.get("/ordens-servico/{ordem_id}/imprimir", response_class=HTMLResponse)
 def imprimir_ordem_servico(ordem_id: int, request: Request, db: Session = Depends(get_db)):
-    """Imprime uma ordem de serviço"""
+    """Imprime uma ordem de serviÃ§o"""
     try:
         from crm_modules.ordens_servico.service import OrdemServicoService
         from datetime import datetime
@@ -453,12 +948,12 @@ def imprimir_ordem_servico(ordem_id: int, request: Request, db: Session = Depend
             "now": datetime.now()
         })
     except Exception as e:
-        return HTMLResponse(content=f"Erro ao gerar impressão: {str(e)}", status_code=400)
+        return HTMLResponse(content=f"Erro ao gerar impressÃ£o: {str(e)}", status_code=400)
 
 
 @app.get("/ordens-servico/{ordem_id}/editar", response_class=HTMLResponse)
 def editar_ordem_form(ordem_id: int, request: Request, db: Session = Depends(get_db)):
-    """Formulário de edição de ordem de serviço"""
+    """FormulÃ¡rio de ediÃ§Ã£o de ordem de serviÃ§o"""
     try:
         from crm_modules.ordens_servico.service import OrdemServicoService
         from crm_modules.clientes.service import ClienteService
@@ -481,7 +976,7 @@ def editar_ordem_form(ordem_id: int, request: Request, db: Session = Depends(get
 
 @app.post("/ordens-servico", response_class=HTMLResponse)
 async def criar_ordem_servico(request: Request, db: Session = Depends(get_db)):
-    """Cria uma nova ordem de serviço"""
+    """Cria uma nova ordem de serviÃ§o"""
     from crm_modules.ordens_servico.service import OrdemServicoService
     from crm_modules.ordens_servico.schemas import OrdemServicoCreate
     try:
@@ -510,7 +1005,7 @@ async def criar_ordem_servico(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/ordens-servico/{ordem_id}/editar")
 async def atualizar_ordem_servico(ordem_id: int, request: Request, db: Session = Depends(get_db)):
-    """Atualiza uma ordem de serviço"""
+    """Atualiza uma ordem de serviÃ§o"""
     from crm_modules.ordens_servico.service import OrdemServicoService
     from crm_modules.ordens_servico.schemas import OrdemServicoUpdate
     try:
@@ -588,7 +1083,7 @@ def toggle_checklist_item(
         if item:
             summary = service.get_progress_summary(ordem_servico_id)
             return {"success": True, "summary": summary}
-        return {"success": False, "message": "Item não encontrado"}
+        return {"success": False, "message": "Item nÃ£o encontrado"}
     except Exception as e:
         return {"success": False, "message": str(e)}
 
@@ -610,7 +1105,7 @@ def check_checklist_item(
     observacoes: str = None,
     db: Session = Depends(get_db)
 ):
-    """Marca um item do checklist como concluído"""
+    """Marca um item do checklist como concluÃ­do"""
     from crm_modules.ordens_servico.checklist_service import ChecklistService
     service = ChecklistService(session=db)
 
@@ -618,7 +1113,7 @@ def check_checklist_item(
     if item:
         summary = service.get_progress_summary(ordem_servico_id)
         return {"success": True, "summary": summary}
-    return {"success": False, "message": "Item não encontrado"}
+    return {"success": False, "message": "Item nÃ£o encontrado"}
 
 
 @app.post("/api/v1/checklist/{ordem_servico_id}/items/{item_id}/uncheck")
@@ -631,12 +1126,12 @@ def uncheck_checklist_item(ordem_servico_id: int, item_id: int, db: Session = De
     if item:
         summary = service.get_progress_summary(ordem_servico_id)
         return {"success": True, "summary": summary}
-    return {"success": False, "message": "Item não encontrado"}
+    return {"success": False, "message": "Item nÃ£o encontrado"}
 
 
 @app.get("/api/v1/checklist/{ordem_servico_id}/is-complete")
 def is_checklist_complete(ordem_servico_id: int, db: Session = Depends(get_db)):
-    """Verifica se o checklist está completo"""
+    """Verifica se o checklist estÃ¡ completo"""
     from crm_modules.ordens_servico.checklist_service import ChecklistService
     service = ChecklistService(session=db)
     is_complete = service.is_checklist_completed(ordem_servico_id)
@@ -649,7 +1144,7 @@ def is_checklist_complete(ordem_servico_id: int, db: Session = Depends(get_db)):
 
 @app.get("/carnes", response_class=HTMLResponse)
 def listar_carnes(request: Request, db: Session = Depends(get_db)):
-    """Lista todos os carnês"""
+    """Lista todos os carnÃªs"""
     try:
         from crm_modules.faturamento.carne_service import CarneService
         service = CarneService(db)
@@ -661,7 +1156,7 @@ def listar_carnes(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/carnes/{carne_id}/imprimir", response_class=HTMLResponse)
 def imprimir_carne(carne_id: int, request: Request, db: Session = Depends(get_db)):
-    """Imprime um carnê"""
+    """Imprime um carnÃª"""
     try:
         from crm_modules.faturamento.carne_models import CarneModel
         from sqlalchemy.orm import joinedload
@@ -675,14 +1170,14 @@ def imprimir_carne(carne_id: int, request: Request, db: Session = Depends(get_db
         ).filter(CarneModel.id == carne_id).first()
 
         if not carne:
-            return HTMLResponse(content=f"Carnê não encontrado: ID {carne_id}", status_code=404)
+            return HTMLResponse(content=f"CarnÃª nÃ£o encontrado: ID {carne_id}", status_code=404)
 
-        # Configuração para o template
+        # ConfiguraÃ§Ã£o para o template
         config = {
             "PIX_CHAVE": settings.pix_chave or "",
             "PIX_TIPO_CHAVE": settings.pix_tipo_chave or "cpf",
             "PIX_BENEFICIARIO": settings.pix_beneficiario or "CRM Provedor",
-            "PIX_CIDADE": settings.pix_cidade or "São Paulo"
+            "PIX_CIDADE": settings.pix_cidade or "SÃ£o Paulo"
         }
 
         return templates.TemplateResponse("carne_impressao.html", {
@@ -692,7 +1187,7 @@ def imprimir_carne(carne_id: int, request: Request, db: Session = Depends(get_db
             "config": config
         })
     except Exception as e:
-        return HTMLResponse(content=f"Erro ao gerar impressão: {str(e)}", status_code=400)
+        return HTMLResponse(content=f"Erro ao gerar impressÃ£o: {str(e)}", status_code=400)
 
 
 @app.get("/faturas", response_class=HTMLResponse)
@@ -715,7 +1210,7 @@ def detalhes_fatura(fatura_id: int, request: Request, db: Session = Depends(get_
         service = FaturamentoService(repository_session=db)
         fatura = service.obter_fatura_detalhada(fatura_id)
         if not fatura:
-            return templates.TemplateResponse("faturas.html", {"request": request, "error": "Fatura não encontrada"})
+            return templates.TemplateResponse("faturas.html", {"request": request, "error": "Fatura nÃ£o encontrada"})
         return templates.TemplateResponse("fatura_detalhes.html", {"request": request, "fatura": fatura})
     except Exception as e:
         return templates.TemplateResponse("faturas.html", {"request": request, "error": str(e)})
@@ -731,6 +1226,64 @@ def listar_boletos(request: Request, db: Session = Depends(get_db)):
         return templates.TemplateResponse("boletos.html", {"request": request, "boletos": boletos})
     except Exception as e:
         return templates.TemplateResponse("boletos.html", {"request": request, "boletos": [], "error": str(e)})
+
+
+@app.get("/boletos/{boleto_id}/imprimir", response_class=HTMLResponse)
+def imprimir_boleto(boleto_id: int, request: Request, db: Session = Depends(get_db)):
+    """Impressão de boleto."""
+    try:
+        from crm_modules.faturamento.carne_models import BoletoModel
+        from sqlalchemy.orm import joinedload
+        from datetime import datetime
+        import io
+        import base64
+
+        boleto = db.query(BoletoModel).options(
+            joinedload(BoletoModel.cliente)
+        ).filter(
+            BoletoModel.id == boleto_id,
+            BoletoModel.ativo == True
+        ).first()
+
+        if not boleto:
+            return HTMLResponse(content=f"Boleto não encontrado: ID {boleto_id}", status_code=404)
+
+        pix_payload = (
+            getattr(boleto, "pix_copia_cola", None)
+            or getattr(boleto, "pix_payload", None)
+            or getattr(boleto, "payload_pix", None)
+            or getattr(boleto, "qr_code_payload", None)
+        )
+        qr_payload = (
+            pix_payload
+            or boleto.url_boleto
+            or boleto.linha_digitavel
+            or boleto.codigo_barras
+            or boleto.numero_boleto
+        )
+
+        qr_data_uri = None
+        if qr_payload:
+            try:
+                import qrcode
+                img = qrcode.make(str(qr_payload))
+                buffer = io.BytesIO()
+                img.save(buffer, format="PNG")
+                qr_b64 = base64.b64encode(buffer.getvalue()).decode("ascii")
+                qr_data_uri = f"data:image/png;base64,{qr_b64}"
+            except Exception:
+                qr_data_uri = None
+
+        return templates.TemplateResponse("boleto_impressao.html", {
+            "request": request,
+            "boleto": boleto,
+            "now": datetime.now(),
+            "pix_payload": pix_payload,
+            "qr_payload": qr_payload,
+            "qr_data_uri": qr_data_uri
+        })
+    except Exception as e:
+        return HTMLResponse(content=f"Erro ao gerar impressão: {str(e)}", status_code=400)
 
 
 @app.get("/pagamentos", response_class=HTMLResponse)
@@ -764,7 +1317,7 @@ def listar_contratos(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/contratos/novo", response_class=HTMLResponse)
 def novo_contrato_form(request: Request, db: Session = Depends(get_db)):
-    """Exibe formulário para criar novo contrato"""
+    """Exibe formulÃ¡rio para criar novo contrato"""
     from crm_modules.clientes.service import ClienteService
     cliente_service = ClienteService(repository_session=db)
     clientes = cliente_service.listar_clientes_ativos()
@@ -798,6 +1351,13 @@ async def criar_contrato(request: Request, db: Session = Depends(get_db)):
         return templates.TemplateResponse("novo_contrato.html", {"request": request, "error": str(e)})
 
 
+@app.get("/contratos/relatorios", include_in_schema=False)
+def redirecionar_relatorios_contratos():
+    """Compatibilidade com link antigo de relatÃ³rios de contratos."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/relatorios/contratos", status_code=307)
+
+
 @app.get("/contratos/{contrato_id}/imprimir", response_class=HTMLResponse)
 def imprimir_contrato(contrato_id: int, request: Request, db: Session = Depends(get_db)):
     """Imprime um contrato"""
@@ -807,7 +1367,7 @@ def imprimir_contrato(contrato_id: int, request: Request, db: Session = Depends(
         service = ContratoService(repository_session=db)
         contrato = service.obter_contrato(contrato_id)
         if not contrato:
-            return HTMLResponse(content="Contrato não encontrado", status_code=404)
+            return HTMLResponse(content="Contrato nÃ£o encontrado", status_code=404)
 
         return templates.TemplateResponse("contrato_impressao.html", {
             "request": request,
@@ -815,18 +1375,18 @@ def imprimir_contrato(contrato_id: int, request: Request, db: Session = Depends(
             "now": datetime.now()
         })
     except Exception as e:
-        return HTMLResponse(content=f"Erro ao gerar impressão: {str(e)}", status_code=400)
+        return HTMLResponse(content=f"Erro ao gerar impressÃ£o: {str(e)}", status_code=400)
 
 
 @app.get("/contratos/{contrato_id}/editar", response_class=HTMLResponse)
 def editar_contrato_form(contrato_id: int, request: Request, db: Session = Depends(get_db)):
-    """Exibe formulário para editar contrato"""
+    """Exibe formulÃ¡rio para editar contrato"""
     from crm_modules.contratos.service import ContratoService
     try:
         service = ContratoService(repository_session=db)
         contrato = service.obter_contrato(contrato_id)
         if not contrato:
-            return templates.TemplateResponse("contratos.html", {"request": request, "error": "Contrato não encontrado"})
+            return templates.TemplateResponse("contratos.html", {"request": request, "error": "Contrato nÃ£o encontrado"})
         return templates.TemplateResponse("novo_contrato.html", {"request": request, "contrato": contrato})
     except Exception as e:
         return templates.TemplateResponse("contratos.html", {"request": request, "error": str(e)})
@@ -878,16 +1438,16 @@ def gerar_pdf_contrato(contrato_id: int, db: Session = Depends(get_db)):
 
 @app.get("/contratos/{contrato_id}/detalhes", response_class=JSONResponse)
 def obter_detalhes_contrato_json(contrato_id: int, db: Session = Depends(get_db)):
-    """Obtém detalhes de um contrato em formato JSON"""
+    """ObtÃ©m detalhes de um contrato em formato JSON"""
     from crm_modules.contratos.service import ContratoService
     from crm_modules.contratos.service import ContratoService
     try:
         service = ContratoService(repository_session=db)
         contrato = service.obter_contrato(contrato_id)
         if not contrato:
-            return JSONResponse({"error": "Contrato não encontrado"}, status_code=404)
+            return JSONResponse({"error": "Contrato nÃ£o encontrado"}, status_code=404)
         
-        # Converter contrato para dicionário
+        # Converter contrato para dicionÃ¡rio
         contrato_dict = {
             "id": contrato.id,
             "titulo": contrato.titulo,
@@ -917,7 +1477,7 @@ def detalhes_contrato(contrato_id: int, request: Request, db: Session = Depends(
         service = ContratoService(repository_session=db)
         contrato = service.obter_contrato(contrato_id)
         if not contrato:
-            return templates.TemplateResponse("contratos.html", {"request": request, "error": "Contrato não encontrado"})
+            return templates.TemplateResponse("contratos.html", {"request": request, "error": "Contrato nÃ£o encontrado"})
         return templates.TemplateResponse("contrato_detalhes.html", {"request": request, "contrato": contrato})
     except Exception as e:
         return templates.TemplateResponse("contratos.html", {"request": request, "error": str(e)})
@@ -929,27 +1489,46 @@ def detalhes_contrato(contrato_id: int, request: Request, db: Session = Depends(
 
 @app.get("/relatorios/contratos", response_class=HTMLResponse)
 def relatorios_contratos(request: Request, db: Session = Depends(get_db)):
-    """Página de relatórios de contratos"""
+    """PÃ¡gina de relatÃ³rios de contratos"""
     try:
         from crm_modules.contratos.service import ContratoService
+        from datetime import datetime, timedelta
         service = ContratoService(repository_session=db)
         contratos = service.listar_todos_contratos()
-        
-        # Calcular estatísticas
+
+        def _get_status(item):
+            if isinstance(item, dict):
+                return item.get("status_assinatura")
+            return getattr(item, "status_assinatura", None)
+
+        def _get_data_criacao(item):
+            if isinstance(item, dict):
+                return item.get("data_criacao")
+            return getattr(item, "data_criacao", None)
+
+        # Calcular estatÃ­sticas
         stats = {
             "total": len(contratos),
-            "aguardando": len([c for c in contratos if c.status_assinatura == "pendente"]),
-            "assinado": len([c for c in contratos if c.status_assinatura == "assinado"]),
-            "liberado": len([c for c in contratos if c.status_assinatura == "liberado"]),
+            "aguardando": len([c for c in contratos if _get_status(c) in ("pendente", "aguardando")]),
+            "assinado": len([c for c in contratos if _get_status(c) == "assinado"]),
+            "liberado": len([c for c in contratos if _get_status(c) == "liberado"]),
             "vencendo_30_dias": 0,
             "vencidos": 0
         }
-        
-        # Contratos recentes (últimos 30 dias)
-        from datetime import datetime, timedelta
+
+        # Contratos recentes (Ãºltimos 30 dias)
         hoje = datetime.now()
         data_limite = hoje - timedelta(days=30)
-        contratos_recentes = [c for c in contratos if c.data_criacao and c.data_criacao > data_limite]
+        contratos_recentes = []
+        for c in contratos:
+            data_ref = _get_data_criacao(c)
+            if isinstance(data_ref, str):
+                try:
+                    data_ref = datetime.fromisoformat(data_ref)
+                except ValueError:
+                    continue
+            if data_ref and data_ref > data_limite:
+                contratos_recentes.append(c)
         
         return templates.TemplateResponse("relatorios_contratos.html", {
             "request": request,
@@ -957,7 +1536,7 @@ def relatorios_contratos(request: Request, db: Session = Depends(get_db)):
             "contratos_recentes": contratos_recentes
         })
     except Exception as e:
-        print(f"Erro ao carregar relatório de contratos: {e}")
+        print(f"Erro ao carregar relatÃ³rio de contratos: {e}")
         return templates.TemplateResponse("relatorios_contratos.html", {
             "request": request,
             "stats": {"total": 0, "aguardando": 0, "assinado": 0, "liberado": 0, "vencendo_30_dias": 0, "vencidos": 0},
@@ -967,13 +1546,18 @@ def relatorios_contratos(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/relatorios/clientes", response_class=HTMLResponse)
 def relatorios_clientes(request: Request, db: Session = Depends(get_db)):
-    """Página de relatórios de clientes"""
+    """PÃ¡gina de relatÃ³rios de clientes"""
     try:
         from crm_modules.clientes.service import ClienteService
         service = ClienteService(repository_session=db)
         clientes = service.listar_clientes()
         
-        # Calcular estatísticas
+        # Janela de tempo base (Ãºltimos 30 dias)
+        from datetime import datetime, timedelta
+        hoje = datetime.now()
+        data_limite = hoje - timedelta(days=30)
+
+        # Calcular estatÃ­sticas
         stats = {
             "total": len(clientes),
             "ativos": len([c for c in clientes if c.ativo]),
@@ -984,20 +1568,34 @@ def relatorios_clientes(request: Request, db: Session = Depends(get_db)):
             "clientes_urbanos": 0,
             "clientes_rurais": 0
         }
-        
-        # Clientes recentes (últimos 30 dias)
-        from datetime import datetime, timedelta
-        hoje = datetime.now()
-        data_limite = hoje - timedelta(days=30)
-        clientes_recentes = [c for c in clientes if c.data_criacao and c.data_criacao > data_limite]
-        
+
+        # Novos clientes no perÃ­odo (mesma regra de data dos recentes)
+        stats["novos_mes"] = len([
+            c for c in clientes
+            if (getattr(c, "data_cadastro", None) or getattr(c, "data_criacao", None))
+            and (getattr(c, "data_cadastro", None) or getattr(c, "data_criacao", None)) > data_limite
+        ])
+
+        # Clientes recentes (Ãºltimos 30 dias)
+        clientes_recentes = []
+        for cliente in clientes:
+            data_ref = getattr(cliente, "data_cadastro", None) or getattr(cliente, "data_criacao", None)
+            if data_ref and data_ref > data_limite:
+                clientes_recentes.append(cliente)
+
+        # Mais recentes primeiro
+        clientes_recentes.sort(
+            key=lambda c: getattr(c, "data_cadastro", None) or getattr(c, "data_criacao", None),
+            reverse=True
+        )
+
         return templates.TemplateResponse("relatorios_clientes.html", {
             "request": request,
             "stats": stats,
             "clientes_recentes": clientes_recentes
         })
     except Exception as e:
-        print(f"Erro ao carregar relatório de clientes: {e}")
+        print(f"Erro ao carregar relatÃ³rio de clientes: {e}")
         return templates.TemplateResponse("relatorios_clientes.html", {
             "request": request,
             "stats": {"total": 0, "ativos": 0, "inativos": 0, "novos_mes": 0, "cancelados_mes": 0, "receita_mensal": 0, "clientes_urbanos": 0, "clientes_rurais": 0},

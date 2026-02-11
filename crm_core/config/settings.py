@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     mikrotik_host: str = ""
     mikrotik_user: str = ""
     mikrotik_password: str = ""
+    mikrotik_local_address: str = ""
     huawei_host: str = ""
     huawei_user: str = ""
     huawei_password: str = ""

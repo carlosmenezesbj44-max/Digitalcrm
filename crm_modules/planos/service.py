@@ -47,6 +47,9 @@ class PlanoService:
         model = self.repository.get_by_id(plano_id)
         if not model:
             raise NotFoundException("Plano não encontrado")
+        return self._to_domain(model)
+
+    def _to_domain(self, model: PlanoModel) -> Plano:
         return Plano(
             id=model.id,
             nome=model.nome,
@@ -78,7 +81,7 @@ class PlanoService:
 
         self.repository.update(model)
 
-        return self.obter_plano(plano_id)
+        return self._to_domain(model)
 
     def desativar_plano(self, plano_id: int) -> Plano:
         model = self.repository.get_by_id(plano_id)
@@ -86,13 +89,13 @@ class PlanoService:
             raise NotFoundException("Plano não encontrado")
         model.ativo = False
         self.repository.update(model)
-        return self.obter_plano(plano_id)
+        return self._to_domain(model)
 
     def listar_planos_ativos(self):
         models = self.repository.get_active_planos()
-        return [self.obter_plano(model.id) for model in models]
+        return [self._to_domain(model) for model in models]
 
     def buscar_planos_por_nome(self, nome: str):
         """Busca planos por nome"""
         models = self.repository.search_by_name(nome)
-        return [self.obter_plano(model.id) for model in models]
+        return [self._to_domain(model) for model in models]

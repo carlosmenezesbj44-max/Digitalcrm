@@ -20,7 +20,16 @@ class TecnicoService:
         # Verificar se email já existe
         existente = self.repository.obter_por_email(tecnico_create.email)
         if existente:
-            raise ValueError(f"Email {tecnico_create.email} já cadastrado")
+            if existente.ativo:
+                raise ValueError(f"Email {tecnico_create.email} já cadastrado")
+            else:
+                # Se existe mas está inativo, reativa e atualiza os dados
+                update_data = tecnico_create.dict()
+                for field, value in update_data.items():
+                    setattr(existente, field, value)
+                existente.ativo = True
+                self.repository.update(existente)
+                return existente
 
         tecnico = TecnicoModel(**tecnico_create.dict())
         return self.repository.create(tecnico)

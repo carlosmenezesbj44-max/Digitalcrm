@@ -90,7 +90,7 @@ def test_mikrotik_connection():
     # Testa a criação de profile
     print(f"\n4. Testando criação de profile PPPoE:")
     try:
-        success = criar_profile_mikrotik(
+        success, msg = criar_profile_mikrotik(
             name="test_profile",
             download_limit=10,
             upload_limit=5,

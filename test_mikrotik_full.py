@@ -44,7 +44,7 @@ def test_mikrotik_full():
     # 2. Testar criação de profile
     print("\n2. Testando criação de profile:")
     try:
-        success = criar_profile_mikrotik(
+        success, msg = criar_profile_mikrotik(
             name="test_profile_full",
             download_limit=50,
             upload_limit=20,

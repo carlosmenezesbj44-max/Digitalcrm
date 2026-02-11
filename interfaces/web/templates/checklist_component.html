@@ -136,12 +136,32 @@ function toggleChecklistItem(ordemId, itemId) {
 </script>
 
 <style>
+.checklist-container .list-group-item {
+    color: var(--text-main, #ffffff);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.checklist-container .form-check-label,
+.checklist-container .form-check-label strong {
+    color: var(--text-main, #ffffff);
+}
+
+.checklist-container .form-check-label small,
+.checklist-container .text-muted {
+    color: #b8c2cc !important;
+}
+
 .checklist-container .list-group-item.completed {
     opacity: 0.6;
 }
 
 .checklist-container .list-group-item.completed .form-check-label {
     text-decoration: line-through;
+    color: #a7b4c0;
+}
+
+.checklist-container .list-group-item.completed .form-check-label small {
+    color: #8fa0ae !important;
 }
 
 .checklist-container .form-check-input:checked {

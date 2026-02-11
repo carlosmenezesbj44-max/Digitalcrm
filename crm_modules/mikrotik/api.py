@@ -256,6 +256,57 @@ async def sync_plans(servidor_id: int = None):
     return result
 
 
+@router.post("/sync-clients")
+async def sync_clients(servidor_id: int = None):
+    """Sincroniza todos os clientes do CRM com secrets PPPoE no MikroTik"""
+    service = MikrotikService(servidor_id=servidor_id)
+    try:
+        from crm_modules.clientes.service import ClienteService
+        from crm_modules.contratos.service import ContratoService
+        from crm_core.db.base import get_db_session
+        
+        db = get_db_session()
+        try:
+            cliente_service = ClienteService(repository_session=db)
+            contrato_service = ContratoService(repository_session=db)
+            
+            clientes = cliente_service.listar_clientes_ativos()
+            contratos = contrato_service.listar_todos_contratos()
+            
+            resultados = []
+            for cliente in clientes:
+                # Buscar contrato ativo do cliente
+                cliente_contratos = [
+                    c for c in contratos
+                    if c.get('cliente_id') == cliente.id and c.get('status_assinatura') == 'assinado'
+                ]
+                if cliente_contratos:
+                    contrato = cliente_contratos[0]
+                    result = service.sincronizar_cliente_real_time(cliente, contrato)
+                    resultados.append({
+                        'cliente_id': cliente.id,
+                        'cliente_nome': cliente.nome,
+                        'resultado': result
+                    })
+            
+            sucessos = sum(1 for r in resultados if r['resultado']['status'] == 'success')
+            falhas = len(resultados) - sucessos
+            
+            return {
+                'status': 'success',
+                'message': f'Sincronização concluída: {sucessos} clientes sincronizados, {falhas} falhas',
+                'resultados': resultados,
+                'total_clientes': len(clientes),
+                'sucessos': sucessos,
+                'falhas': falhas
+            }
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f'Erro ao sincronizar clientes: {str(e)}')
+
 # Integração com o módulo de contratos
 @router.post("/contratos/{contrato_id}/sync")
 async def sync_contract_with_mikrotik(

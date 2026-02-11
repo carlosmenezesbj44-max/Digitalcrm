@@ -16,6 +16,31 @@ class ProdutoService:
             self.repository = ProdutoRepository(session=repository_session) if repository_session is not None else ProdutoRepository()
         self.event_bus = event_bus or EventBus()
 
+    def _to_domain(self, model: ProdutoModel) -> Produto:
+        return Produto(
+            id=model.id,
+            nome=model.nome,
+            tipo=model.tipo,
+            preco=model.preco,
+            categoria=model.categoria,
+            unidade=model.unidade,
+            descricao=model.descricao,
+            ativo=model.ativo,
+            preco_custo=model.preco_custo,
+            sku=model.sku,
+            codigo_barras=model.codigo_barras,
+            quantidade_estoque=model.quantidade_estoque,
+            estoque_minimo=model.estoque_minimo,
+            ncm=model.ncm,
+            cfop=model.cfop,
+            icms=model.icms,
+            fornecedor=model.fornecedor,
+            imagem_url=model.imagem_url,
+            created_at=model.created_at,
+            updated_at=model.updated_at,
+            created_by=model.created_by,
+        )
+
     def criar_produto(self, produto_data: ProdutoCreate) -> Produto:
         # Validate
         if not produto_data.nome.strip():
@@ -58,29 +83,7 @@ class ProdutoService:
         model = self.repository.create(model)
 
         # Create domain object to return
-        produto = Produto(
-            id=model.id,
-            nome=model.nome,
-            tipo=model.tipo,
-            preco=model.preco,
-            categoria=model.categoria,
-            unidade=model.unidade,
-            descricao=model.descricao,
-            ativo=model.ativo,
-            preco_custo=model.preco_custo,
-            sku=model.sku,
-            codigo_barras=model.codigo_barras,
-            quantidade_estoque=model.quantidade_estoque,
-            estoque_minimo=model.estoque_minimo,
-            ncm=model.ncm,
-            cfop=model.cfop,
-            icms=model.icms,
-            fornecedor=model.fornecedor,
-            imagem_url=model.imagem_url,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-            created_by=model.created_by,
-        )
+        produto = self._to_domain(model)
 
         # Publish event
         self.event_bus.publish(ProdutoCreatedEvent(produto.id, produto.nome))
@@ -90,29 +93,7 @@ class ProdutoService:
         model = self.repository.get_by_id(produto_id)
         if not model:
             raise NotFoundException("Produto não encontrado")
-        return Produto(
-            id=model.id,
-            nome=model.nome,
-            tipo=model.tipo,
-            preco=model.preco,
-            categoria=model.categoria,
-            unidade=model.unidade,
-            descricao=model.descricao,
-            ativo=model.ativo,
-            preco_custo=model.preco_custo,
-            sku=model.sku,
-            codigo_barras=model.codigo_barras,
-            quantidade_estoque=model.quantidade_estoque,
-            estoque_minimo=model.estoque_minimo,
-            ncm=model.ncm,
-            cfop=model.cfop,
-            icms=model.icms,
-            fornecedor=model.fornecedor,
-            imagem_url=model.imagem_url,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
-            created_by=model.created_by,
-        )
+        return self._to_domain(model)
 
     def atualizar_produto(self, produto_id: int, update_data: ProdutoUpdate) -> Produto:
         model = self.repository.get_by_id(produto_id)
@@ -168,7 +149,7 @@ class ProdutoService:
 
         self.repository.update(model)
 
-        return self.obter_produto(produto_id)
+        return self._to_domain(model)
 
     def desativar_produto(self, produto_id: int) -> Produto:
         model = self.repository.get_by_id(produto_id)
@@ -176,7 +157,7 @@ class ProdutoService:
             raise NotFoundException("Produto não encontrado")
         model.ativo = False
         self.repository.update(model)
-        return self.obter_produto(produto_id)
+        return self._to_domain(model)
 
     def excluir_produto(self, produto_id: int) -> bool:
         model = self.repository.get_by_id(produto_id)
@@ -196,7 +177,7 @@ class ProdutoService:
 
     def listar_produtos_ativos(self):
         models = self.repository.get_active_produtos()
-        return [self.obter_produto(model.id) for model in models]
+        return [self._to_domain(model) for model in models]
 
     def listar_produtos_com_filtros(
         self,

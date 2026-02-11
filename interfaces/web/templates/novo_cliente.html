@@ -176,7 +176,7 @@
 
             <!-- Progress Indicator -->
             <div class="form-progress">
-                <div class="progress-step completed" data-step="1">
+                <div class="progress-step" data-step="1">
                     <div class="progress-dot">1</div>
                     <div class="progress-label">Dados Pessoais</div>
                 </div>
@@ -656,14 +656,91 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Adicionar máscaras de input
-        addInputMask('cpf', 'cpf');
-        addInputMask('cep', 'cep');
-        addInputMask('telefone', 'telefone');
-        addInputMask('telefone2', 'telefone');
-        addInputMask('whatsapp', 'telefone');
+        if (typeof addInputMask === 'function') {
+            addInputMask('cpf', 'cpf');
+            addInputMask('cep', 'cep');
+            addInputMask('telefone', 'telefone');
+            addInputMask('telefone2', 'telefone');
+            addInputMask('whatsapp', 'telefone');
+        }
         
         // Inicializar tabs do Bootstrap
-        initTabs('clienteTabs');
+        if (typeof initTabs === 'function') {
+            initTabs('clienteTabs');
+        }
+
+        // Inicializar botões de modal se necessário
+        const modalBtn = document.getElementById('open-product-modal-btn');
+        const confirmBtn = document.getElementById('confirm-selected-products-btn');
+
+        if (modalBtn && window.bootstrap) {
+            modalBtn.addEventListener('click', function() {
+                const modalEl = document.getElementById('productSelectionModal');
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            });
+        }
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('#modal-product-list input[type="checkbox"]:checked');
+                checkboxes.forEach(cb => {
+                    const productId = parseInt(cb.value);
+                    const productPrice = parseFloat(cb.dataset.price);
+                    const productName = cb.dataset.name;
+
+                    if (!selectedProducts.find(p => p.id === productId)) {
+                        selectedProducts.push({
+                            id: productId,
+                            name: productName,
+                            price: productPrice
+                        });
+                    }
+                });
+                
+                renderSelectedProducts();
+                
+                // Fechar modal
+                const modalEl = document.getElementById('productSelectionModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                
+                // Desmarcar checkboxes para a próxima vez
+                checkboxes.forEach(cb => cb.checked = false);
+            });
+        }
+
+        // Marcar a primeira aba como ativa no indicador de progresso
+        document.querySelector('.progress-step[data-step="1"]').classList.add('active');
+
+        // Função global switchTab
+        window.switchTab = function(tabId) {
+            const nextTab = document.getElementById(tabId + '-tab');
+            if (nextTab) {
+                const tab = new bootstrap.Tab(nextTab);
+                tab.show();
+                
+                // Rolar para o topo suavemente
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        };
+
+        // Atualizar indicadores de progresso quando a aba muda
+        const tabs = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabs.forEach((tabEl, index) => {
+            tabEl.addEventListener('shown.bs.tab', function (event) {
+                const currentStep = index + 1;
+                document.querySelectorAll('.progress-step').forEach((step, stepIndex) => {
+                    const stepNum = stepIndex + 1;
+                    step.classList.remove('active', 'completed');
+                    if (stepNum < currentStep) {
+                        step.classList.add('completed');
+                    } else if (stepNum === currentStep) {
+                        step.classList.add('active');
+                    }
+                });
+            });
+        });
 
         // Preview da Foto da Casa
         const fotoInput = document.getElementById('foto_casa_input');
@@ -737,7 +814,7 @@
                     selectedProducts.push({
                         id: {{ produto.id }},
                         name: "{{ produto.nome }}",
-                        price: {{ produto.preco_venda or 0 }}
+                        price: {{ produto.preco or 0 }}
                     });
                 {% endif %}
             {% endfor %}

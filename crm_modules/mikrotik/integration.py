@@ -36,7 +36,8 @@ def get_mikrotik_server(servidor_id: int = None):
 
 def criar_profile_mikrotik(name: str, download_limit: int, upload_limit: int, host: Optional[str] = None, user: Optional[str] = None, secret: Optional[str] = None):
     """
-    Cria ou atualiza um profile PPPoE no MikroTik com limitações de velocidade.
+    Cria ou atualiza um profile PPPoE no MikroTik com limitacoes de velocidade.
+    Retorna (success, message)
     """
     if not any([host, user, secret]):
         server = get_mikrotik_server()
@@ -50,15 +51,16 @@ def criar_profile_mikrotik(name: str, download_limit: int, upload_limit: int, ho
             secret = settings.mikrotik_password
 
     if not all([host, user, secret]):
-        print("MikroTik não configurado, pulando criação de profile")
-        return False
+        msg = "MikroTik nao configurado, pulando criacao de profile"
+        print(msg)
+        return False, msg
 
     try:
         import routeros_api
     except ImportError:
-        error_msg = "Biblioteca 'routeros-api' não instalada. Execute 'pip install routeros-api'."
+        error_msg = "Biblioteca 'routeros-api' nao instalada. Execute 'pip install routeros-api'."
         print(error_msg)
-        raise Exception(error_msg)
+        return False, error_msg
 
     try:
         connection = routeros_api.RouterOsApiPool(
@@ -73,15 +75,15 @@ def criar_profile_mikrotik(name: str, download_limit: int, upload_limit: int, ho
         ppp_profiles = api.get_resource('/ppp/profile')
         existing = ppp_profiles.get(name=name)
 
-        # Verificar se há pools disponíveis
+        # Verificar se ha pools disponiveis
         pools = api.get_resource('/ip/pool').get()
         pool_name = None
-        
+
         if pools:
             # Usa o primeiro pool encontrado
             pool_name = pools[0]['name']
         else:
-            # Cria um pool padrão se não existir
+            # Cria um pool padrao se nao existir
             pool_name = "pppoe-pool"
             api.get_resource('/ip/pool').add(
                 name=pool_name,
@@ -90,29 +92,45 @@ def criar_profile_mikrotik(name: str, download_limit: int, upload_limit: int, ho
 
         if existing:
             # Atualizar profile
+            update_params = {
+                'rate_limit': f"{upload_limit}M/{download_limit}M",
+                'remote_address': pool_name
+            }
+            # Opcionalmente, adiciona local_address se configurado
+            if settings.mikrotik_local_address:
+                update_params['local_address'] = settings.mikrotik_local_address
+
             ppp_profiles.set(
                 id=existing[0]['id'],
-                rate_limit=f"{upload_limit}M/{download_limit}M",
-                local_address="192.168.1.1",
-                remote_address=pool_name
+                **update_params
             )
-            print(f"Profile PPPoE atualizado: {name}")
+            msg = f"Profile PPPoE atualizado: {name}"
+            print(msg)
+            connection.disconnect()
+            return True, msg
         else:
             # Criar novo profile
-            ppp_profiles.add(
-                name=name,
-                rate_limit=f"{upload_limit}M/{download_limit}M",
-                local_address="192.168.1.1",
-                remote_address=pool_name
-            )
-            print(f"Profile PPPoE criado: {name}")
+            create_params = {
+                'name': name,
+                'rate_limit': f"{upload_limit}M/{download_limit}M",
+                'remote_address': pool_name
+            }
+            # Opcionalmente, adiciona local_address se configurado
+            if settings.mikrotik_local_address:
+                create_params['local_address'] = settings.mikrotik_local_address
 
-        connection.disconnect()
-        return True
+            ppp_profiles.add(
+                **create_params
+            )
+            msg = f"Profile PPPoE criado: {name}"
+            print(msg)
+            connection.disconnect()
+            return True, msg
 
     except Exception as e:
-        print(f"Erro ao criar profile no MikroTik: {e}")
-        return False
+        msg = f"Erro ao criar profile no MikroTik: {e}"
+        print(msg)
+        return False, msg
 
 
 def sincronizar_cliente_mikrotik(username: str, password: str, profile: str = "default", host: Optional[str] = None, user: Optional[str] = None, secret: Optional[str] = None):

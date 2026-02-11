@@ -47,6 +47,8 @@
     {% endif %}
 
     <!-- Barra de ações -->
+    <div id="syncPlanosResult" class="alert alert-info border-0 shadow-sm mb-3" style="display:none; background-color: rgba(52, 152, 219, 0.12); color: var(--text-main);"></div>
+
     <div class="d-flex justify-content-end mb-3">
         <div class="d-flex gap-2">
             <button class="btn btn-outline-secondary btn-sm border-secondary border-opacity-25" id="btnToggleView">
@@ -54,6 +56,9 @@
             </button>
             <button class="btn btn-outline-success btn-sm border-success border-opacity-25" id="btnExportar">
                 <i class="bi bi-download"></i> Exportar CSV
+            </button>
+            <button class="btn btn-outline-info btn-sm border-info border-opacity-25" id="btnSyncPlanos">
+                <i class="bi bi-wifi"></i> Sincronizar Planos
             </button>
         </div>
     </div>
@@ -250,6 +255,59 @@
                 }
             });
             exportToCSV(data, 'planos');
+        });
+        
+        // Sincronizar planos
+        document.getElementById('btnSyncPlanos')?.addEventListener('click', function() {
+            if (confirm('Tem certeza que deseja sincronizar os planos com o MikroTik?')) {
+                const resultEl = document.getElementById('syncPlanosResult');
+                if (resultEl) {
+                    resultEl.style.display = 'none';
+                    resultEl.innerHTML = '';
+                }
+                showLoading('Sincronizando planos...');
+                
+                fetch('/api/v1/mikrotik/sync-plans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const resultEl = document.getElementById('syncPlanosResult');
+                    if (data.status === 'success') {
+                        showToast('Planos sincronizados com sucesso!', 'success');
+                        if (resultEl) {
+                            const sucessos = data.sucessos ?? 0;
+                            const falhas = data.falhas ?? 0;
+                            const total = data.total_planos ?? (sucessos + falhas);
+                            let html = `<strong>Sincronizacao concluida.</strong> Total: ${total}, Sucessos: ${sucessos}, Falhas: ${falhas}.`;
+                            if (Array.isArray(data.resultados) && data.resultados.length) {
+                                const failed = data.resultados.filter(r => r.resultado && r.resultado.status !== 'success');
+                                if (failed.length) {
+                                    html += '<br><strong>Falhas:</strong><br>' + failed.map(r => `- ${r.plano_nome || 'Plano'}: ${r.resultado?.message || 'Erro'}`).join('<br>');
+                                }
+                            }
+                            resultEl.innerHTML = html;
+                            resultEl.style.display = 'block';
+                        }
+                    } else {
+                        showToast(data.message || 'Erro ao sincronizar planos', 'error');
+                        if (resultEl) {
+                            resultEl.innerHTML = `<strong>Erro:</strong> ${data.message || 'Falha ao sincronizar planos.'}`;
+                            resultEl.style.display = 'block';
+                        }
+                    }
+                })
+                .catch(error => {
+                    showToast('Erro ao sincronizar planos.', 'error');
+                    const resultEl = document.getElementById('syncPlanosResult');
+                    if (resultEl) {
+                        resultEl.innerHTML = '<strong>Erro:</strong> Nao foi possivel sincronizar planos.';
+                        resultEl.style.display = 'block';
+                    }
+                })
+                .finally(() => hideLoading());
+            }
         });
     });
 </script>

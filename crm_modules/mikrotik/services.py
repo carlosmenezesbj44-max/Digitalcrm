@@ -86,7 +86,7 @@ class MikrotikService:
     def criar_profile_real_time(self, name: str, download_limit: int, upload_limit: int) -> Dict[str, Any]:
         """Cria um profile PPPoE em tempo real"""
         try:
-            success = criar_profile_mikrotik(
+            success, msg = criar_profile_mikrotik(
                 name=name,
                 download_limit=download_limit,
                 upload_limit=upload_limit,
@@ -97,7 +97,7 @@ class MikrotikService:
             
             return {
                 'status': 'success' if success else 'error',
-                'message': f'Profile {name} criado com sucesso' if success else f'Falha ao criar profile {name}'
+                'message': msg if msg else (f'Profile {name} criado com sucesso' if success else f'Falha ao criar profile {name}')
             }
             
         except Exception as e:
@@ -138,6 +138,45 @@ class MikrotikService:
                 'status': 'error',
                 'message': f'Erro ao sincronizar cliente: {str(e)}'
             }
+
+    def sincronizar_todos_clientes(self) -> Dict[str, Any]:
+        """Sincroniza todos os clientes ativos com o MikroTik"""
+        from crm_modules.clientes.repository import ClienteRepository
+        from crm_modules.contratos.repository import ContratoRepository
+        from crm_core.db.base import get_db_session
+        
+        if not self.server:
+            return {'status': 'error', 'message': 'Nenhum servidor MikroTik configurado'}
+            
+        db = get_db_session()
+        try:
+            cliente_repo = ClienteRepository(db)
+            contrato_repo = ContratoRepository(db)
+            
+            clientes = cliente_repo.get_active_clients()
+            sucesso = 0
+            falha = 0
+            
+            for cliente in clientes:
+                # Buscar contrato ativo do cliente
+                contratos = contrato_repo.get_by_cliente_id(cliente.id)
+                contrato_ativo = next((c for c in contratos if c.status == 'assinado'), None)
+                
+                if contrato_ativo:
+                    try:
+                        self.sincronizar_cliente_real_time(cliente, contrato_ativo)
+                        sucesso += 1
+                    except:
+                        falha += 1
+                else:
+                    falha += 1
+                    
+            return {
+                'status': 'success',
+                'message': f'Sincronização concluída. Sucesso: {sucesso}, Falha: {falha}'
+            }
+        finally:
+            db.close()
     
     def bloquear_cliente_real_time(self, username: str) -> Dict[str, Any]:
         """Bloqueia um cliente no MikroTik em tempo real"""

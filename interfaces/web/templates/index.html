@@ -1,16 +1,17 @@
 {% extends "layout.html" %}
 
-{% block title %}Dashboard - CRM Provedor{% endblock %}
+{% block title %}Painel - CRM Provedor{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Estilos específicos da dashboard */
+    /* Estilos especÃ­ficos da dashboard */
     .dashboard-wrapper {
         padding: 0;
         color: var(--text-main);
         font-family: 'Inter', sans-serif;
         background: linear-gradient(135deg, var(--card-bg) 0%, #1e293b 100%);
         min-height: 100vh;
+        overflow-x: hidden;
     }
 
     /* Top Bar Layout */
@@ -256,180 +257,243 @@
     .dashboard-grid {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
-        gap: 20px;
+        gap: 12px;
         grid-auto-flow: row dense;
     }
 
     .card-db {
-        background: var(--card-bg);
-        border-radius: 12px;
-        padding: 20px;
-        border: 1px solid var(--border-color);
+        background: linear-gradient(135deg, rgba(18, 45, 57, 0.96), rgba(16, 34, 45, 0.96));
+        border-radius: 10px;
+        padding: 12px 14px;
+        border: 1px solid rgba(120, 170, 188, 0.14);
         height: 100%;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
         display: flex;
         flex-direction: column;
-        transition: transform 0.2s ease;
-    }
-
-    .card-db:hover {
-        transform: translateY(-5px);
     }
 
     .card-title {
         font-size: 13px;
-        font-weight: 500;
-        margin-bottom: 12px;
-        color: var(--text-secondary);
-        text-align: left; /* Título alinhado à esquerda como na imagem */
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    /* KPI Cards */
-    .col-os { grid-column: span 3; }
-    .col-atendimentos { grid-column: span 3; }
-    .col-status-contratos { grid-column: span 3; }
-    .col-contratos-donut { grid-column: span 3; }
-    
-    .col-clientes { grid-column: span 3; }
-    .col-30-dias { grid-column: span 3; }
-    .col-backup { grid-column: span 3; }
-    .col-outros { grid-column: span 3; } /* Adicionado para preencher a linha */
-    
-    .col-financeiro { grid-column: span 4; }
-    .col-prospects { grid-column: span 4; }
-    .col-vendas { grid-column: span 4; } /* Adicionado */
-    .col-evolucao { grid-column: span 12; }
-
-    /* OS Card Specific */
-    .os-stats {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 10px;
-        margin-top: auto;
-    }
-
-    .os-box {
-        text-align: center;
-        flex: 1;
-    }
-
-    .os-number {
-        font-size: 28px;
         font-weight: 700;
-        padding: 8px;
-        border-radius: 6px;
-        display: block;
-        width: 100%;
+        margin-bottom: 10px;
+        color: #d5ebf5;
+        text-align: center;
     }
 
-    .os-number.blue { background: #00a3ff; color: white; }
-    .os-number.orange { background: #ff9f43; color: white; }
+    .col-quarter { grid-column: span 3; min-height: 205px; }
+    .col-half { grid-column: span 6; min-height: 205px; }
+    .col-full { grid-column: span 12; min-height: 205px; }
 
-    .os-label {
-        font-size: 11px;
-        margin-top: 5px;
-        color: var(--text-secondary);
-        font-weight: 500;
+    .row-split {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 10px;
+        align-items: center;
     }
 
-    /* Status List Improvement */
+    .kpi-pills {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        gap: 36px;
+        margin-top: 16px;
+    }
+
+    .kpi-stack {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .kpi-value {
+        border-radius: 4px;
+        min-width: 56px;
+        text-align: center;
+        font-size: 30px;
+        font-weight: 800;
+        line-height: 1;
+        padding: 6px 6px;
+        color: #0f2b39;
+    }
+
+    .kpi-value.blue { background: #2f99eb; }
+    .kpi-value.orange { background: #ffad24; min-width: 24px; font-size: 34px; padding: 4px 4px; }
+
+    .kpi-label {
+        font-size: 12px;
+        color: #d6e2e9;
+        font-weight: 700;
+    }
+
     .status-list {
         list-style: none;
         padding: 0;
         margin: 0;
+        display: grid;
+        gap: 6px;
     }
 
     .status-item {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 8px;
+        justify-content: space-between;
         font-size: 12px;
-        padding-bottom: 4px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        color: #d7eaf2;
+        font-weight: 600;
     }
 
     .status-info {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 6px;
     }
 
     .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%; /* Bolinhas arredondadas */
+        width: 10px;
+        height: 10px;
+        border-radius: 0;
     }
 
-    .status-value {
-        font-weight: 600;
-        color: var(--text-main);
-    }
-
-    /* Gauge Chart Placeholder */
-    .gauge-wrapper {
-        position: relative;
-        height: 100px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .gauge-center {
+    .center-value {
         position: absolute;
-        top: 50%;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: 800;
+        color: #59c769;
+        pointer-events: none;
+    }
+
+    .semi-center {
+        position: absolute;
         left: 50%;
+        top: 68%;
         transform: translate(-50%, -50%);
         text-align: center;
         pointer-events: none;
-        line-height: 1;
     }
 
-    .gauge-value {
-        font-size: 16px;
+    .semi-value {
+        font-size: 13px;
         font-weight: 700;
-        color: var(--text-main);
+        color: #d5ebf5;
     }
 
-    .gauge-label {
-        font-size: 10px;
-        color: var(--text-secondary);
-    }
+    .chart-h { height: 140px; position: relative; }
+    .chart-m { height: 140px; position: relative; }
+    .chart-l { height: 140px; position: relative; }
 
-    /* Chart wrappers */
-    .chart-h { height: 120px; position: relative; }
-    .chart-m { height: 180px; position: relative; }
-    .chart-l { height: 280px; position: relative; }
-
-    @media (max-width: 1400px) {
-        .col-os, .col-atendimentos, .col-status-contratos, .col-contratos-donut,
-        .col-clientes, .col-30-dias, .col-backup, .col-financeiro, .col-prospects {
-            grid-column: span 6;
+    @media (max-width: 992px) {
+        .top-bar {
+            padding: 12px;
+            gap: 10px;
+        }
+        .search-group {
+            max-width: 100%;
+        }
+        .search-input-wrapper {
+            max-width: 100%;
+        }
+        .top-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .card-db {
+            padding: 9px 9px;
+        }
+        .card-title {
+            font-size: 11px;
+            line-height: 1.25;
         }
     }
 
+    @media (max-width: 1400px) {
+        .col-quarter { grid-column: span 6; }
+        .col-half { grid-column: span 12; }
+    }
+
     @media (max-width: 768px) {
-        .col-os, .col-atendimentos, .col-status-contratos, .col-contratos-donut,
-        .col-clientes, .col-30-dias, .col-backup, .col-financeiro, .col-prospects {
+        .dashboard-wrapper {
+            padding: 0 4px;
+        }
+        .col-quarter, .col-half, .col-full {
             grid-column: span 12;
         }
         .top-bar {
             flex-direction: column;
             align-items: stretch;
-            gap: 15px;
+            gap: 10px;
+            margin-bottom: 12px;
         }
         .search-group {
             flex-direction: column;
             width: 100%;
+            gap: 8px;
+        }
+        .search-select,
+        .search-input,
+        #dashboardSelector {
+            min-width: 100%;
+            width: 100%;
+            height: 42px;
+            font-size: 13px;
         }
         .search-input-wrapper {
             max-width: none;
         }
         .top-actions {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+        .btn-top,
+        .icon-btn {
+            width: 100%;
             justify-content: center;
+        }
+        .icon-btn {
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+        }
+        .row-split {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+        .kpi-pills {
+            gap: 18px;
+            margin-top: 10px;
+        }
+        .kpi-value {
+            font-size: 24px;
+            min-width: 48px;
+        }
+        .kpi-value.orange {
+            font-size: 26px;
+            min-width: 22px;
+        }
+        .status-item {
+            font-size: 11px;
+        }
+        .center-value {
+            font-size: 20px;
+        }
+        .chart-h { height: 120px; }
+        .chart-m { height: 120px; }
+        .chart-l { height: 120px; }
+    }
+
+    @media (max-width: 420px) {
+        .card-db {
+            padding: 10px 8px;
+        }
+        .chart-h { height: 110px; }
+        .chart-m { height: 110px; }
+        .chart-l { height: 110px; }
+        .center-value {
+            font-size: 18px;
         }
     }
 </style>
@@ -443,14 +507,14 @@
         <form action="/clientes" method="GET" class="search-group" id="dashboardSearchForm">
             <select name="field" class="search-select" id="searchField" style="color: var(--text-main);">
                 <option value="todos" style="color: var(--text-main); background: #1c2833;">Todos</option>
-                <option value="endereco" style="color: var(--text-main); background: #1c2833;">Endereço</option>
+                <option value="endereco" style="color: var(--text-main); background: #1c2833;">EndereÃ§o</option>
                 <option value="email" style="color: var(--text-main); background: #1c2833;">Email</option>
                 <option value="nome" style="color: var(--text-main); background: #1c2833;">Nome</option>
                 <option value="cpf/cnpj" style="color: var(--text-main); background: #1c2833;">CPF/CNPJ</option>
                 <option value="login" style="color: var(--text-main); background: #1c2833;">Login</option>
             </select>
             <div class="search-input-wrapper">
-                <input type="text" name="q" class="search-input" placeholder="Buscar clientes..." id="searchInput" onkeypress="if(event.key === 'Enter') { this.form.submit(); return false; }">
+                <input type="text" name="q" class="search-input" placeholder="Buscar clientes..." id="searchInput">
                 <i class="bi bi-search search-icon" style="cursor: pointer;" onclick="document.getElementById('dashboardSearchForm').submit();"></i>
             </div>
         </form>
@@ -461,7 +525,7 @@
                 <option value="financeiro" {% if request.query_params.get('view') == 'financeiro' %}selected{% endif %}>Dashboard Financeiro</option>
                 <option value="suporte" {% if request.query_params.get('view') == 'suporte' %}selected{% endif %}>Dashboard Suporte</option>
                 <option value="vendas" {% if request.query_params.get('view') == 'vendas' %}selected{% endif %}>Dashboard Vendas</option>
-                <option value="tecnico" {% if request.query_params.get('view') == 'tecnico' %}selected{% endif %}>Dashboard Técnico</option>
+                <option value="tecnico" {% if request.query_params.get('view') == 'tecnico' %}selected{% endif %}>Dashboard TÃ©cnico</option>
             </select>
             <a href="#" class="btn-top active">
                 <i class="bi bi-check-circle-fill"></i> Guia NFCom
@@ -471,10 +535,10 @@
                 <div class="user-widget dropdown-toggle" id="userWidget" data-bs-toggle="dropdown" aria-expanded="false">
                     <div class="user-avatar" id="userAvatar">U</div>
                     <div class="user-info">
-                        <div class="user-name" id="userName">Usuário</div>
+                        <div class="user-name" id="userName">UsuÃ¡rio</div>
                         <div class="user-role" id="userRole">Perfil</div>
                     </div>
-                    <span class="user-actions-btn" title="Opções">
+                    <span class="user-actions-btn" title="OpÃ§Ãµes">
                         <i class="bi bi-chevron-down"></i>
                     </span>
                 </div>
@@ -487,10 +551,10 @@
                         <i class="bi bi-person-gear me-2"></i> Minha conta
                     </a>
                     <a class="dropdown-item" href="/minha-conta?tab=preferencias">
-                        <i class="bi bi-gear me-2"></i> Preferências
+                        <i class="bi bi-gear me-2"></i> PreferÃªncias
                     </a>
                     <a class="dropdown-item" href="/relatorios/clientes">
-                        <i class="bi bi-bar-chart me-2"></i> Relatórios rápidos
+                        <i class="bi bi-bar-chart me-2"></i> RelatÃ³rios rÃ¡pidos
                     </a>
                     <div class="dropdown-divider"></div>
                     <button class="dropdown-item text-danger" type="button" onclick="logout()">
@@ -503,212 +567,81 @@
 
     <!-- Dashboard Grid -->
     <div class="dashboard-grid">
-        <!-- My Deals Funnel -->
-        {% if view in ['principal', 'vendas'] %}
-        <div class="col-os">
+        <div class="col-quarter">
             <div class="card-db">
-                <div class="card-title">My Deals Funnel</div>
-                <div class="chart-m">
-                    <canvas id="dealFunnelChart"></canvas>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Emails Opened -->
-        {% if view in ['principal', 'vendas'] %}
-        <div class="col-atendimentos">
-            <div class="card-db">
-                <div class="card-title">Emails Opened</div>
-                <div class="chart-m">
-                    <canvas id="emailsOpenedChart"></canvas>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- My Deal by Milestone -->
-        {% if view in ['principal', 'vendas'] %}
-        <div class="col-status-contratos">
-            <div class="card-db">
-                <div class="card-title">My Deals by Milestone</div>
-                <div class="chart-m">
-                    <canvas id="dealByMilestoneChart"></canvas>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Revenue Graph -->
-        {% if view in ['principal', 'financeiro', 'vendas'] %}
-        <div class="col-contratos-donut">
-            <div class="card-db">
-                <div class="card-title">Revenue Graph</div>
-                <div class="chart-m">
-                    <canvas id="revenueGraphChart"></canvas>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Task Report -->
-        {% if view in ['principal', 'suporte', 'vendas'] %}
-        <div class="col-clientes">
-            <div class="card-db">
-                <div class="card-title">Task Report</div>
-                <div class="chart-m">
-                    <canvas id="taskReportChart"></canvas>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Activities -->
-        {% if view in ['principal', 'suporte', 'vendas'] %}
-        <div class="col-30-dias">
-            <div class="card-db">
-                <div class="card-title">Activities</div>
-                <div class="chart-m">
-                    <canvas id="activitiesChart"></canvas>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Tasks -->
-        {% if view in ['principal', 'suporte', 'vendas'] %}
-        <div class="col-backup">
-            <div class="card-db">
-                <div class="card-title">Tasks</div>
-                <div class="chart-m">
-                    <canvas id="tasksChart"></canvas>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- OS Pendentes -->
-        {% if view in ['principal', 'suporte', 'tecnico'] %}
-        <div class="col-financeiro">
-            <div class="card-db">
-                <div class="card-title">Ordens de serviços pendentes</div>
-                <div class="os-stats">
-                    <div class="os-box">
-                        <div class="os-number blue" id="os-todas">4589</div>
-                        <div class="os-label">Todas</div>
-                    </div>
-                    <div class="os-box">
-                        <div class="os-number orange" id="os-minhas">1</div>
-                        <div class="os-label">Minhas</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Atendimentos por status -->
-        {% if view in ['principal', 'suporte'] %}
-        <div class="col-prospects">
-            <div class="card-db">
-                <div class="card-title">Atendimentos por status (6096)</div>
+                <div class="card-title">Ordens de servicos pendentes</div>
                 <div class="chart-h">
+                    <canvas id="osBarsChart"></canvas>
+                </div>
+                <div class="kpi-pills">
+                    <div class="kpi-stack">
+                        <div class="kpi-value blue" id="os-todas">4684</div>
+                        <div class="kpi-label">Todas</div>
+                    </div>
+                    <div class="kpi-stack">
+                        <div class="kpi-value orange" id="os-minhas">1</div>
+                        <div class="kpi-label">Minhas</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-quarter">
+            <div class="card-db">
+                <div class="card-title">Atendimentos por status (6354)</div>
+                <div class="chart-m">
                     <canvas id="atendimentosChart"></canvas>
                 </div>
             </div>
         </div>
-        {% endif %}
 
-        <!-- Status dos contratos -->
-        {% if view in ['principal', 'financeiro', 'tecnico'] %}
-        <div class="col-evolucao">
+        <div class="col-quarter">
             <div class="card-db">
-                <div class="card-title">Status dos contratos (25660)</div>
-                <div class="row align-items-center">
-                    <div class="col-7">
-                        <ul class="status-list">
-                            <li class="status-item">
-                                <div class="status-info"><div class="status-dot" style="background: var(--success-color);"></div> Ativos:</div>
-                                <span class="status-value" id="contratos-ativos">9502</span>
-                            </li>
-                            <li class="status-item">
-                                <div class="status-info"><div class="status-dot" style="background: var(--info-color);"></div> Inativos:</div>
-                                <span class="status-value" id="contratos-inativos">15850</span>
-                            </li>
-                            <li class="status-item">
-                                <div class="status-info"><div class="status-dot" style="background: #00a3ff;"></div> Pré-contrato:</div>
-                                <span class="status-value" id="contratos-pre">68</span>
-                            </li>
-                            <li class="status-item">
-                                <div class="status-info"><div class="status-dot" style="background: var(--text-secondary);"></div> Desistiu:</div>
-                                <span class="status-value" id="contratos-desistiu">225</span>
-                            </li>
-                        </ul>
+                <div class="card-title">Status dos contratos (25748)</div>
+                <div class="row-split">
+                    <div class="chart-m">
+                        <canvas id="contratosGauge"></canvas>
                     </div>
-                    <div class="col-5">
-                        <div class="gauge-wrapper">
-                            <canvas id="contratosGauge"></canvas>
-                            <div class="gauge-center">
-                                <div class="gauge-value">37%</div>
-                                <div class="gauge-label">ATIVOS</div>
-                            </div>
-                        </div>
-                    </div>
+                    <ul class="status-list">
+                        <li class="status-item"><span class="status-info"><span class="status-dot" style="background:#49bc53;"></span>Ativos: 9542</span></li>
+                        <li class="status-item"><span class="status-info"><span class="status-dot" style="background:#8ba1b1;"></span>Inativos: 15886</span></li>
+                        <li class="status-item"><span class="status-info"><span class="status-dot" style="background:#2f99eb;"></span>Pre-contrato: 78</span></li>
+                        <li class="status-item"><span class="status-info"><span class="status-dot" style="background:#5f6770;"></span>Desistiu: 227</span></li>
+                    </ul>
                 </div>
             </div>
         </div>
-        {% endif %}
 
-        <!-- Contratos por status Donut -->
-        {% if view in ['principal', 'financeiro'] %}
-        <div class="col-evolucao">
+        <div class="col-quarter">
             <div class="card-db">
-                <div class="card-title">Contratos por status (9517)</div>
-                <div class="chart-m position-relative">
-                    <canvas id="contratosDonut"></canvas>
-                    <div class="gauge-center">
-                        <div class="gauge-value" style="font-size: 24px; color: var(--success-color);">81%</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Clientes Donut -->
-        {% if view in ['principal', 'financeiro', 'vendas'] %}
-        <div class="col-evolucao">
-            <div class="card-db">
-                <div class="card-title">Clientes (20266)</div>
-                <div class="chart-m position-relative">
-                    <canvas id="clientesDonut"></canvas>
-                    <div class="gauge-center">
-                        <div class="gauge-value" style="font-size: 24px; color: var(--success-color);">56%</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Últimos 30 dias -->
-        {% if view in ['principal', 'financeiro', 'vendas'] %}
-        <div class="col-evolucao">
-            <div class="card-db">
-                <div class="card-title">Últimos 30 dias (187)</div>
+                <div class="card-title">Contratos por status (9557)</div>
                 <div class="chart-m">
-                    <div class="gauge-wrapper" style="height: 100%;">
-                        <canvas id="trintaDiasGauge"></canvas>
-                        <div class="gauge-center" style="top: 65%;">
-                            <div class="gauge-value" style="font-size: 24px; color: var(--success-color);">187</div>
-                            <div class="gauge-label">ATIVADOS</div>
-                        </div>
-                    </div>
+                    <canvas id="contratosDonut"></canvas>
+                    <div class="center-value">77%</div>
                 </div>
             </div>
         </div>
-        {% endif %}
 
-        <!-- Status Backup -->
-        {% if view in ['principal', 'suporte', 'tecnico'] %}
-        <div class="col-evolucao">
+        <div class="col-quarter">
+            <div class="card-db">
+                <div class="card-title">Clientes (20344)</div>
+                <div class="chart-m">
+                    <canvas id="clientesDonut"></canvas>
+                    <div class="center-value" style="font-size: 22px;">56%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-quarter">
+            <div class="card-db">
+                <div class="card-title">Ultimos 30 dias (201)</div>
+                <div class="chart-m">
+                    <canvas id="trintaDiasGauge"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-quarter">
             <div class="card-db">
                 <div class="card-title">Status Backup</div>
                 <div class="chart-m">
@@ -716,49 +649,54 @@
                 </div>
             </div>
         </div>
-        {% endif %}
 
-        <!-- A receber -->
-        {% if view in ['principal', 'financeiro'] %}
-        <div class="col-evolucao">
+        <div class="col-quarter">
             <div class="card-db">
-                <div class="card-title">A receber com vencimento no mês atual</div>
-                <div class="chart-m">
-                    <div class="gauge-wrapper" style="height: 100%;">
-                        <canvas id="receberGauge"></canvas>
-                        <div class="gauge-center" style="top: 65%;">
-                            <div class="gauge-value" style="font-size: 20px;">R$ 45.8k</div>
-                            <div class="gauge-label">TOTAL</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Prospects -->
-        {% if view in ['principal', 'vendas'] %}
-        <div class="col-evolucao">
-            <div class="card-db">
-                <div class="card-title">Prospects (2117)</div>
+                <div class="card-title">Prospects (2116)</div>
                 <div class="chart-m">
                     <canvas id="prospectsChart"></canvas>
                 </div>
             </div>
         </div>
-        {% endif %}
 
-        <!-- Evolução Mensal -->
-        {% if view in ['principal', 'financeiro', 'vendas'] %}
-        <div class="col-evolucao">
+        <div class="col-half">
             <div class="card-db">
-                <div class="card-title">Evolução mensal dos contratos nos últimos 365 dias</div>
+                <div class="card-title">A receber com vencimento no mes atual (819.335,85)</div>
+                <div class="chart-l">
+                    <canvas id="receberGauge"></canvas>
+                    <div class="semi-center">
+                        <div class="semi-value">47%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-quarter">
+            <div class="card-db">
+                <div class="card-title">Validade do certificado A1 (03/12/26)</div>
+                <div class="chart-l">
+                    <canvas id="certificadoGauge"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-half">
+            <div class="card-db">
+                <div class="card-title">A pagar com vencimento no mes atual (459.237,57)</div>
+                <div class="chart-l">
+                    <canvas id="pagarGauge"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-half">
+            <div class="card-db">
+                <div class="card-title">Evolucao mensal dos contratos nos ultimos 365 dias</div>
                 <div class="chart-l">
                     <canvas id="evolucaoChart"></canvas>
                 </div>
             </div>
         </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -784,201 +722,370 @@
         }
     })();
 
-    // Configuração global do Chart.js para Dark Mode
+    // ConfiguraÃ§Ã£o global do Chart.js para Dark Mode
     Chart.defaults.color = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#adb5bd';
     Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.08)';
     Chart.defaults.font.family = "'Inter', sans-serif";
 
     function initCharts() {
-        // 1. My Deals Funnel (Funnel)
-        const dealFunnelCtx = document.getElementById('dealFunnelChart');
-        if (dealFunnelCtx) {
-            new Chart(dealFunnelCtx, {
+        const gridColor = 'rgba(106, 151, 169, 0.18)';
+        const textColor = '#d5ebf5';
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const legendFont = isMobile ? 9 : 11;
+        const legendBox = isMobile ? 8 : 10;
+
+        const noLegend = { plugins: { legend: { display: false } } };
+        const axisBase = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#102a36' } },
+            scales: {
+                x: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: isMobile ? 10 : 11 } } },
+                y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: isMobile ? 10 : 11 } } }
+            }
+        };
+
+        const osBarsCtx = document.getElementById('osBarsChart');
+        if (osBarsCtx) {
+            new Chart(osBarsCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['New', 'Demo Scheduled', 'Demo Completed', 'Interested', 'Demo No-Show'],
-                    datasets: [{
-                        data: [5500, 3000, 2000, 1200, 500],
-                        backgroundColor: ['#3498db', '#2ecc71', '#e67e22', '#f1c40f', '#e74c3c'],
-                        borderRadius: 4,
-                        barThickness: 25
-                    }]
+                    labels: [''],
+                    datasets: [
+                        { data: [4684], backgroundColor: '#2f99eb', borderRadius: 6, barThickness: 28 },
+                        { data: [1], backgroundColor: '#ffad24', borderRadius: 6, barThickness: 28 }
+                    ]
                 },
                 options: {
-                    indexAxis: 'y',
+                    ...noLegend,
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { display: false }, ticks: { display: true } },
-                        y: { grid: { display: false } }
+                        x: { grid: { display: false }, ticks: { display: false } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor } }
                     }
                 }
             });
         }
 
-        // 2. Emails Opened (Gauge)
-        const emailsOpenedCtx = document.getElementById('emailsOpenedChart');
-        if (emailsOpenedCtx) {
-            new Chart(emailsOpenedCtx, {
-                type: 'doughnut',
+        const atendimentosCtx = document.getElementById('atendimentosChart');
+        if (atendimentosCtx) {
+            new Chart(atendimentosCtx, {
+                type: 'bar',
                 data: {
+                    labels: ['Novo', '1 progresso', 'Pendente'],
                     datasets: [{
-                        data: [100, 0],
-                        backgroundColor: ['#2ecc71', 'var(--card-bg)'],
-                        borderWidth: 0,
-                        circumference: 360,
-                        rotation: 0
+                        data: [3122, 3075, 157],
+                        backgroundColor: ['#49bc53', '#2f99eb', '#ff4a42'],
+                        borderRadius: 4,
+                        barThickness: 14
                     }]
                 },
                 options: {
-                    cutout: '80%',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                    ...axisBase,
+                    indexAxis: 'y',
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                        y: { grid: { display: false }, ticks: { color: textColor } }
+                    }
                 }
             });
         }
 
-        // 3. My Deals by Milestone (Pie)
-        const dealByMilestoneCtx = document.getElementById('dealByMilestoneChart');
-        if (dealByMilestoneCtx) {
-            new Chart(dealByMilestoneCtx, {
-                type: 'pie',
+        const contratosGaugeCtx = document.getElementById('contratosGauge');
+        if (contratosGaugeCtx) {
+            new Chart(contratosGaugeCtx, {
+                type: 'doughnut',
                 data: {
-                    labels: ['New', 'Demo Scheduled', 'Demo Completed', 'Interested', 'Demo No-Show', 'Lost'],
                     datasets: [{
-                        data: [14, 9, 27, 34, 9, 7],
-                        backgroundColor: ['#3498db', '#2ecc71', '#e67e22', '#f1c40f', '#e74c3c', '#95a5a6'],
+                        data: [37, 63],
+                        backgroundColor: ['#49bc53', 'rgba(167, 196, 209, 0.26)'],
                         borderWidth: 0
                     }]
                 },
                 options: {
+                    cutout: '72%',
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        const contratosDonutCtx = document.getElementById('contratosDonut');
+        if (contratosDonutCtx) {
+            new Chart(contratosDonutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ativos', 'Bloqueio manual', 'Bloqueio auto', 'Em atraso', 'Ag. assinatura', 'Desativados'],
+                    datasets: [{
+                        data: [7369, 30, 1485, 656, 2, 15],
+                        backgroundColor: ['#49bc53', '#ff4a42', '#ff6347', '#f7b928', '#2f99eb', '#7d8790'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '50%',
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { 
-                            position: 'right', 
-                            labels: { 
-                                boxWidth: 8, 
-                                padding: 8, 
-                                font: { size: 9 },
-                                usePointStyle: true,
-                                pointStyle: 'circle'
-                            } 
+                        legend: {
+                            position: isMobile ? 'bottom' : 'right',
+                            labels: {
+                                color: textColor,
+                                boxWidth: legendBox,
+                                boxHeight: legendBox,
+                                font: { size: legendFont },
+                                padding: isMobile ? 8 : 12
+                            }
                         }
                     }
                 }
             });
         }
 
-        // 4. Revenue Graph (Area)
-        const revenueGraphCtx = document.getElementById('revenueGraphChart');
-        if (revenueGraphCtx) {
-            new Chart(revenueGraphCtx, {
+        const clientesDonutCtx = document.getElementById('clientesDonut');
+        if (clientesDonutCtx) {
+            new Chart(clientesDonutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ativos', 'Inativos'],
+                    datasets: [{
+                        data: [11319, 9025],
+                        backgroundColor: ['#49bc53', '#7a93a5'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '68%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: isMobile ? 'bottom' : 'right',
+                            labels: {
+                                color: textColor,
+                                boxWidth: legendBox,
+                                boxHeight: legendBox,
+                                font: { size: legendFont },
+                                padding: isMobile ? 8 : 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const trintaDiasGaugeCtx = document.getElementById('trintaDiasGauge');
+        if (trintaDiasGaugeCtx) {
+            new Chart(trintaDiasGaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ativados', 'Meta'],
+                    datasets: [{
+                        data: [201, 260],
+                        backgroundColor: ['#49bc53', '#ff4238'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '54%',
+                    rotation: 190,
+                    circumference: 290,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: textColor, boxWidth: legendBox, boxHeight: legendBox, font: { size: legendFont } }
+                        }
+                    }
+                }
+            });
+        }
+
+        const backupCtx = document.getElementById('backupChart');
+        if (backupCtx) {
+            new Chart(backupCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['07/02', '08/02', '09/02'],
+                    datasets: [
+                        { label: 'Falha', data: [0, 0, 0], backgroundColor: '#ef5350' },
+                        { label: 'Sucesso', data: [1, 0, 1], backgroundColor: '#86a92f' },
+                        { label: 'Somente Local', data: [0, 0, 0], backgroundColor: '#d4c74e' },
+                        { label: 'Falha de Envio', data: [0, 0, 0], backgroundColor: '#f2ac2d' },
+                        { label: 'Verificado', data: [0, 0, 0], backgroundColor: '#2f99eb' }
+                    ]
+                },
+                options: {
+                    ...axisBase,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: textColor, boxWidth: legendBox, boxHeight: legendBox, font: { size: legendFont } }
+                        }
+                    },
+                    scales: {
+                        x: { stacked: true, grid: { display: false }, ticks: { color: textColor } },
+                        y: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 } }
+                    }
+                }
+            });
+        }
+
+        const prospectsCtx = document.getElementById('prospectsChart');
+        if (prospectsCtx) {
+            new Chart(prospectsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Novos', 'Sondagem', 'Apresentacao', 'Negociando'],
+                    datasets: [{
+                        data: [100, 72, 48, 30],
+                        backgroundColor: ['#2f99eb', '#9c27b0', '#f5db3b', '#f7a51f'],
+                        borderWidth: 0,
+                        barThickness: 22
+                    }]
+                },
+                options: {
+                    ...noLegend,
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { display: false, reverse: true },
+                        y: { display: false, reverse: true }
+                    }
+                }
+            });
+        }
+
+        const receberGaugeCtx = document.getElementById('receberGauge');
+        if (receberGaugeCtx) {
+            new Chart(receberGaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Renegociados', 'Baixados', 'Cancelados', 'Abertos'],
+                    datasets: [{
+                        data: [2, 26, 25, 47],
+                        backgroundColor: ['#f7a51f', '#49bc53', '#7a93a5', '#2f99eb'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '58%',
+                    rotation: 270,
+                    circumference: 180,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: isMobile ? 'top' : 'left',
+                            labels: {
+                                color: textColor,
+                                boxWidth: legendBox,
+                                boxHeight: legendBox,
+                                font: { size: legendFont },
+                                padding: isMobile ? 8 : 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const certificadoGaugeCtx = document.getElementById('certificadoGauge');
+        if (certificadoGaugeCtx) {
+            new Chart(certificadoGaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Dias ja utilizados', 'Dias restantes'],
+                    datasets: [{
+                        data: [71, 296],
+                        backgroundColor: ['#bedcff', '#49bc53'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '55%',
+                    rotation: 270,
+                    circumference: 180,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: textColor, boxWidth: legendBox, boxHeight: legendBox, font: { size: legendFont } }
+                        }
+                    }
+                }
+            });
+        }
+
+        const pagarGaugeCtx = document.getElementById('pagarGauge');
+        if (pagarGaugeCtx) {
+            new Chart(pagarGaugeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Baixados', 'Baixa parcial', 'Cancelados', 'Em aberto'],
+                    datasets: [{
+                        data: [29, 0, 15, 56],
+                        backgroundColor: ['#49bc53', '#f5db3b', '#7a93a5', '#ff4238'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '58%',
+                    rotation: 270,
+                    circumference: 180,
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: isMobile ? 'top' : 'left',
+                            labels: {
+                                color: textColor,
+                                boxWidth: legendBox,
+                                boxHeight: legendBox,
+                                font: { size: legendFont },
+                                padding: isMobile ? 8 : 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const evolucaoCtx = document.getElementById('evolucaoChart');
+        if (evolucaoCtx) {
+            new Chart(evolucaoCtx, {
                 type: 'line',
                 data: {
-                    labels: ['Jan', 'Fev', 'Mar'],
+                    labels: ['01', '04', '07', '10', '13', '16', '19', '22', '25', '28', '31'],
                     datasets: [
-                        {
-                            label: 'Revenue',
-                            data: [120000, 180000, 150000],
-                            borderColor: '#3498db',
-                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                            fill: true,
-                            tension: 0.4
-                        },
-                        {
-                            label: 'Cost',
-                            data: [80000, 120000, 90000],
-                            borderColor: '#2ecc71',
-                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
-                            fill: true,
-                            tension: 0.4
+                        { label: 'Ativados : 3940', data: [217, 391, 457, 448, 302, 394, 356, 375, 350, 246, 138], borderColor: '#49bc53', backgroundColor: '#49bc53', tension: 0.35 },
+                        { label: 'Churn : 4030', data: [889, 576, 197, 72, 279, 149, 233, 254, 231, 148, 32], borderColor: '#7a93a5', backgroundColor: '#7a93a5', tension: 0.35 },
+                        { label: 'Data renovacao : 1208', data: [54, 56, 85, 72, 77, 49, 123, 121, 119, 90, 232], borderColor: '#2f99eb', backgroundColor: '#2f99eb', tension: 0.35 },
+                        { label: 'Crescimento : -90', data: [-185, -120, -93, -77, -48, -56, -39, -44, -71, -8, 23], borderColor: '#9c27b0', backgroundColor: '#9c27b0', tension: 0.35 }
+                    ]
+                },
+                options: {
+                    ...axisBase,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: textColor,
+                                boxWidth: legendBox,
+                                boxHeight: legendBox,
+                                font: { size: legendFont },
+                                padding: isMobile ? 8 : 10
+                            }
                         }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top', labels: { boxWidth: 10 } } },
+                    },
                     scales: {
-                        x: { grid: { display: false } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' } }
-                    }
-                }
-            });
-        }
-
-        // 5. Task Report (Bar)
-        const taskReportCtx = document.getElementById('taskReportChart');
-        if (taskReportCtx) {
-            new Chart(taskReportCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Dion', 'Francelis', 'Francois'],
-                    datasets: [
-                        { label: 'Completed', data: [3, 2, 4], backgroundColor: '#2ecc71' },
-                        { label: 'In Progress', data: [2, 3, 1], backgroundColor: '#f1c40f' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { stepSize: 1 } }
-                    }
-                }
-            });
-        }
-
-        // 6. Activities (List)
-        const activitiesCtx = document.getElementById('activitiesChart');
-        if (activitiesCtx) {
-            new Chart(activitiesCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Email', 'Meeting', 'Call'],
-                    datasets: [{
-                        data: [12, 8, 5],
-                        backgroundColor: ['#3498db', '#2ecc71', '#e67e22'],
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' } }
-                    }
-                }
-            });
-        }
-
-        // 7. Tasks (List)
-        const tasksCtx = document.getElementById('tasksChart');
-        if (tasksCtx) {
-            new Chart(tasksCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['Call for Demo', 'Follow Up', 'Send Proposal'],
-                    datasets: [{
-                        data: [3, 2, 1],
-                        backgroundColor: ['#f1c40f', '#3498db', '#2ecc71'],
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { grid: { color: 'rgba(255,255,255,0.05)' } }
+                        x: { grid: { color: 'rgba(78, 113, 128, 0.14)' }, ticks: { color: textColor } },
+                        y: { grid: { color: 'rgba(78, 113, 128, 0.14)' }, ticks: { color: textColor } }
                     }
                 }
             });
@@ -996,7 +1103,7 @@
                 widget.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
             }
         } catch (error) {
-            console.warn('Posição do usuário inválida:', error);
+            console.warn('PosiÃ§Ã£o do usuÃ¡rio invÃ¡lida:', error);
         }
     }
 
@@ -1067,7 +1174,7 @@
             if (!response.ok) return;
             const user = await response.json();
 
-            const name = user.nome_completo || user.username || 'Usuário';
+            const name = user.nome_completo || user.username || 'UsuÃ¡rio';
             const email = user.email || '-';
             const role = (user.role || 'Perfil').toString();
             const initials = name
@@ -1093,10 +1200,11 @@
                 avatar.textContent = initials || 'U';
             }
         } catch (error) {
-            console.error('Erro ao carregar dados do usuário:', error);
+            console.error('Erro ao carregar dados do usuÃ¡rio:', error);
         }
     }
 
     document.addEventListener('DOMContentLoaded', hydrateUserWidget);
 </script>
 {% endblock %}
+

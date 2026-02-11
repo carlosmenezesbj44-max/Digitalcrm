@@ -63,7 +63,7 @@
     }
 
     #modalCadastroCliente .modal-body {
-        overflow-x: visible;
+        overflow-x: hidden;
         overflow-y: auto;
         max-height: calc(100vh - 200px);
     }
@@ -155,12 +155,15 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1 border-secondary" id="btnExportar">
+                        <div class="d-flex gap-1 flex-wrap">
+                            <button type="button" class="btn btn-outline-secondary btn-sm border-secondary" id="btnExportar">
                                 <i class="bi bi-download"></i> Exportar
                             </button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm flex-grow-1 border-secondary" id="btnToggleView">
+                            <button type="button" class="btn btn-outline-secondary btn-sm border-secondary" id="btnToggleView">
                                 <i class="bi bi-grid"></i> Cards
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm border-info" id="btnSyncClientes">
+                                <i class="bi bi-wifi"></i> Sync
                             </button>
                         </div>
                     </div>
@@ -425,6 +428,30 @@
                 alertError.classList.remove('d-none');
             } finally {
                 hideLoading();
+            }
+        });
+        
+        // Sincronizar clientes
+        document.getElementById('btnSyncClientes')?.addEventListener('click', function() {
+            if (confirm('Tem certeza que deseja sincronizar os clientes com o MikroTik?')) {
+                showLoading('Sincronizando clientes...');
+                
+                fetch('/api/v1/mikrotik/sync-clients', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showToast('Clientes sincronizados com sucesso!', 'success');
+                    } else {
+                        showToast(data.message || 'Erro ao sincronizar clientes', 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('Erro ao sincronizar clientes.', 'error');
+                })
+                .finally(() => hideLoading());
             }
         });
     });

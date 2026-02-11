@@ -48,7 +48,7 @@ CRM.api = {
     async _request(method, endpoint, data = null, options = {}) {
         // Normalizar caminhos antigos /api/ para /api/v1/
         if (endpoint.startsWith('/api/') && !endpoint.startsWith('/api/v1/')) {
-            endpoint = endpoint.replace('/api/', '/');
+            endpoint = endpoint.replace('/api/', '/api/v1/');
         }
         
         const url = `${CRM.config.apiBase}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;

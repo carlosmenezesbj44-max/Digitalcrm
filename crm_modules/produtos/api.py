@@ -69,6 +69,6 @@ def listar_produtos(
             page=page,
             per_page=per_page
         )
-        return result
+        return result["produtos"]
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

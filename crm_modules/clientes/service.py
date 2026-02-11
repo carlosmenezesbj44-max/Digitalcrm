@@ -6,6 +6,7 @@ from crm_modules.clientes.models_arquivos import ClienteArquivoModel
 from crm_core.utils.exceptions import NotFoundException, ValidationException
 from crm_core.events.bus import EventBus
 from crm_core.events.events import ClientCreatedEvent
+import re
 from datetime import datetime
 import os
 import shutil
@@ -33,8 +34,40 @@ class ClienteService:
             raise ValidationException("Nome e email são obrigatórios")
 
         # Check if exists
-        if self.repository.get_by_email(cliente_data.email):
-            raise ValidationException("Email já cadastrado")
+        existente = self.repository.get_by_email(cliente_data.email)
+        if existente:
+            if existente.ativo:
+                raise ValidationException("Email já cadastrado")
+            else:
+                # Se existe mas está inativo, reativa e atualiza os dados básicos
+                existente.nome = cliente_data.nome
+                existente.telefone = cliente_data.telefone
+                existente.cpf = cliente_data.cpf
+                existente.ativo = True
+                # ... atualizar outros campos se necessário ...
+                self.repository.update(existente)
+                return self.repository.get_by_id(existente.id) # Retorna o domínio correspondente
+
+        # Resolver profile para o Mikrotik (prioridade: profile informado > nome do plano > default)
+        def _normalize_profile(value: str) -> str:
+            value = (value or "").strip().lower()
+            value = re.sub(r"[^a-z0-9]+", "_", value)
+            return value.strip("_") or "default"
+
+        resolved_profile = (getattr(cliente_data, 'profile', None) or '').strip() or None
+        plano_for_profile = None
+        if not resolved_profile and getattr(cliente_data, 'plano_id', None):
+            try:
+                from crm_modules.planos.models import PlanoModel
+                plano_for_profile = self.repository.session.query(PlanoModel).filter(PlanoModel.id == cliente_data.plano_id).first()
+                if plano_for_profile and plano_for_profile.nome:
+                    resolved_profile = plano_for_profile.nome
+            except Exception as e:
+                print(f"Erro ao buscar plano para profile: {e}")
+
+        if not resolved_profile:
+            resolved_profile = "default"
+        resolved_profile = _normalize_profile(resolved_profile)
 
         # Create ORM model instance and persist
         model = ClienteModel(
@@ -71,7 +104,7 @@ class ClienteService:
             instagram=getattr(cliente_data, 'instagram', None),
             servidor_id=getattr(cliente_data, 'servidor_id', None),
             plano_id=getattr(cliente_data, 'plano_id', None),
-            profile=getattr(cliente_data, 'profile', None),
+            profile=resolved_profile,
             tipo_servico=getattr(cliente_data, 'tipo_servico', 'pppoe'),
             comentario_login=getattr(cliente_data, 'comentario_login', None),
             valor_total=getattr(cliente_data, 'valor_total', None),
@@ -88,9 +121,10 @@ class ClienteService:
         # Sincronizar com MikroTik se username e password fornecidos
         if getattr(cliente_data, 'username', None) and getattr(cliente_data, 'password', None):
             from crm_modules.mikrotik.integration import sincronizar_cliente_mikrotik
+            from crm_modules.mikrotik.integration import criar_profile_mikrotik
             from crm_modules.servidores.service import ServidorService
             
-            profile = getattr(cliente_data, 'plano', 'default') or 'default'
+            profile = resolved_profile
             
             host, user, secret = None, None, None
             if model.servidor_id:
@@ -102,6 +136,22 @@ class ClienteService:
                     secret = servidor.senha
                 except Exception as e:
                     print(f"Erro ao obter dados do servidor {model.servidor_id}: {e}")
+
+            # Garantir que o profile exista no MikroTik quando hÃ¡ plano vinculado
+            if plano_for_profile and plano_for_profile.nome:
+                try:
+                    success, msg = criar_profile_mikrotik(
+                        name=resolved_profile,
+                        download_limit=plano_for_profile.velocidade_download,
+                        upload_limit=plano_for_profile.velocidade_upload,
+                        host=host,
+                        user=user,
+                        secret=secret
+                    )
+                    if not success:
+                        print(f"Aviso: falha ao criar/atualizar profile no MikroTik: {msg}")
+                except Exception as e:
+                    print(f"Aviso: falha ao criar/atualizar profile no MikroTik: {e}")
             
             sincronizar_cliente_mikrotik(
                 cliente_data.username, 
@@ -347,6 +397,7 @@ class ClienteService:
         relative_path = f"/static/uploads/clientes/{cliente_id}/{photo_filename}"
         model.foto_casa = relative_path
         self.repository.update(model)
+        self.repository.session.commit()
         return relative_path
 
     def listar_arquivos(self, cliente_id: int):
